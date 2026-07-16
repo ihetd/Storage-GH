@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   createVariantTemplate,
   updateVariantTemplate,
   deleteVariantTemplate,
 } from "@/lib/actions/variant-templates";
-import { initialFormState } from "@/lib/actions/types";
+import { useFormAction } from "@/lib/use-form-action";
 import { DeleteButton } from "@/components/delete-button";
 import { btnPrimary, btnSecondary, inputClass, labelClass } from "@/components/ui";
 
@@ -63,25 +63,20 @@ function Fields({ template }: { template?: Template }) {
 }
 
 export function TemplateCreateForm() {
-  const [state, action] = useActionState(
-    createVariantTemplate,
-    initialFormState,
-  );
   const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
+  const { run, pending, error } = useFormAction(createVariantTemplate, () =>
+    formRef.current?.reset(),
+  );
 
   return (
-    <form ref={formRef} action={action}>
+    <form ref={formRef} action={run}>
       <Fields />
       <div className="mt-4 flex items-center gap-3">
-        <button type="submit" className={btnPrimary}>
+        <button type="submit" disabled={pending} className={btnPrimary}>
           Add template
         </button>
-        {state.error ? (
-          <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        {error ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : null}
       </div>
     </form>
@@ -90,36 +85,25 @@ export function TemplateCreateForm() {
 
 export function TemplateRow({ template }: { template: Template }) {
   const [editing, setEditing] = useState(false);
-  const [state, action] = useActionState(
-    updateVariantTemplate,
-    initialFormState,
+  const { run, pending, error } = useFormAction(updateVariantTemplate, () =>
+    setEditing(false),
   );
-
-  useEffect(() => {
-    if (state.ok) setEditing(false);
-  }, [state]);
 
   if (editing) {
     return (
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
-        <form action={action}>
+        <form action={run}>
           <input type="hidden" name="id" value={template.id} />
           <Fields template={template} />
           <div className="mt-4 flex items-center gap-3">
-            <button type="submit" className={btnPrimary}>
+            <button type="submit" disabled={pending} className={btnPrimary}>
               Save
             </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className={btnSecondary}
-            >
+            <button type="button" onClick={() => setEditing(false)} className={btnSecondary}>
               Cancel
             </button>
-            {state.error ? (
-              <p className="text-sm text-red-600 dark:text-red-400">
-                {state.error}
-              </p>
+            {error ? (
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             ) : null}
           </div>
         </form>

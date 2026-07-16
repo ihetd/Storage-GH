@@ -68,7 +68,6 @@ function revalidate() {
 }
 
 export async function createProduct(
-  _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireRole(["ADMIN"]);
@@ -106,7 +105,6 @@ export async function createProduct(
 }
 
 export async function updateProduct(
-  _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireRole(["ADMIN"]);

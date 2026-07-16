@@ -1,33 +1,26 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   createCategory,
   updateCategory,
   deleteCategory,
 } from "@/lib/actions/categories";
-import { initialFormState } from "@/lib/actions/types";
+import { useFormAction } from "@/lib/use-form-action";
 import { DeleteButton } from "@/components/delete-button";
 import { btnPrimary, btnSecondary, inputClass } from "@/components/ui";
 
 type Category = { id: string; name: string; sortOrder: number };
 
 export function CategoryCreateForm() {
-  const [state, action] = useActionState(createCategory, initialFormState);
   const formRef = useRef<HTMLFormElement>(null);
-
-  // Clear the inputs after a successful create.
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
+  const { run, pending, error } = useFormAction(createCategory, () =>
+    formRef.current?.reset(),
+  );
 
   return (
-    <form
-      ref={formRef}
-      action={action}
-      className="flex flex-wrap items-end gap-3"
-    >
-      <div className="flex-1 min-w-48">
+    <form ref={formRef} action={run} className="flex flex-wrap items-end gap-3">
+      <div className="min-w-48 flex-1">
         <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
           Name
         </label>
@@ -37,21 +30,13 @@ export function CategoryCreateForm() {
         <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
           Sort
         </label>
-        <input
-          name="sortOrder"
-          type="number"
-          defaultValue={0}
-          min={0}
-          className={inputClass}
-        />
+        <input name="sortOrder" type="number" defaultValue={0} min={0} className={inputClass} />
       </div>
-      <button type="submit" className={btnPrimary}>
+      <button type="submit" disabled={pending} className={btnPrimary}>
         Add category
       </button>
-      {state.error ? (
-        <p className="w-full text-sm text-red-600 dark:text-red-400">
-          {state.error}
-        </p>
+      {error ? (
+        <p className="w-full text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : null}
     </form>
   );
@@ -59,25 +44,18 @@ export function CategoryCreateForm() {
 
 export function CategoryRow({ category }: { category: Category }) {
   const [editing, setEditing] = useState(false);
-  const [state, action] = useActionState(updateCategory, initialFormState);
-
-  useEffect(() => {
-    if (state.ok) setEditing(false);
-  }, [state]);
+  const { run, pending, error } = useFormAction(updateCategory, () =>
+    setEditing(false),
+  );
 
   if (editing) {
     return (
       <tr className="border-t border-slate-100 dark:border-slate-800">
         <td colSpan={3} className="px-3 py-2">
-          <form action={action} className="flex flex-wrap items-end gap-3">
+          <form action={run} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="id" value={category.id} />
-            <div className="flex-1 min-w-48">
-              <input
-                name="name"
-                defaultValue={category.name}
-                required
-                className={inputClass}
-              />
+            <div className="min-w-48 flex-1">
+              <input name="name" defaultValue={category.name} required className={inputClass} />
             </div>
             <div className="w-24">
               <input
@@ -88,20 +66,14 @@ export function CategoryRow({ category }: { category: Category }) {
                 className={inputClass}
               />
             </div>
-            <button type="submit" className={btnPrimary}>
+            <button type="submit" disabled={pending} className={btnPrimary}>
               Save
             </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className={btnSecondary}
-            >
+            <button type="button" onClick={() => setEditing(false)} className={btnSecondary}>
               Cancel
             </button>
-            {state.error ? (
-              <p className="w-full text-sm text-red-600 dark:text-red-400">
-                {state.error}
-              </p>
+            {error ? (
+              <p className="w-full text-sm text-red-600 dark:text-red-400">{error}</p>
             ) : null}
           </form>
         </td>

@@ -42,7 +42,6 @@ async function wouldRemoveLastAdmin(
 }
 
 export async function createEmployee(
-  _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireRole(["ADMIN"]);
@@ -79,7 +78,6 @@ export async function createEmployee(
 }
 
 export async function updateEmployee(
-  _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireRole(["ADMIN"]);

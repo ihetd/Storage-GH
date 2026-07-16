@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   createEmployee,
   updateEmployee,
   deleteEmployee,
 } from "@/lib/actions/employees";
-import { initialFormState } from "@/lib/actions/types";
+import { useFormAction } from "@/lib/use-form-action";
 import { ROLES, type Role } from "@/lib/roles";
 import { DeleteButton } from "@/components/delete-button";
 import { RoleBadge } from "@/components/role-badge";
@@ -33,15 +33,13 @@ function RoleSelect({ defaultValue }: { defaultValue?: Role }) {
 }
 
 export function EmployeeCreateForm() {
-  const [state, action] = useActionState(createEmployee, initialFormState);
   const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
+  const { run, pending, error } = useFormAction(createEmployee, () =>
+    formRef.current?.reset(),
+  );
 
   return (
-    <form ref={formRef} action={action}>
+    <form ref={formRef} action={run}>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Username</label>
@@ -65,11 +63,11 @@ export function EmployeeCreateForm() {
         Active (can sign in)
       </label>
       <div className="mt-4 flex items-center gap-3">
-        <button type="submit" className={btnPrimary}>
+        <button type="submit" disabled={pending} className={btnPrimary}>
           Add employee
         </button>
-        {state.error ? (
-          <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        {error ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : null}
       </div>
     </form>
@@ -84,36 +82,24 @@ export function EmployeeRow({
   isSelf: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [state, action] = useActionState(updateEmployee, initialFormState);
-
-  useEffect(() => {
-    if (state.ok) setEditing(false);
-  }, [state]);
+  const { run, pending, error } = useFormAction(updateEmployee, () =>
+    setEditing(false),
+  );
 
   if (editing) {
     return (
       <tr className="border-t border-slate-100 dark:border-slate-800">
         <td colSpan={4} className="px-3 py-3">
-          <form action={action}>
+          <form action={run}>
             <input type="hidden" name="id" value={employee.id} />
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className={labelClass}>Username</label>
-                <input
-                  name="username"
-                  required
-                  defaultValue={employee.username}
-                  className={inputClass}
-                />
+                <input name="username" required defaultValue={employee.username} className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>Full name</label>
-                <input
-                  name="name"
-                  required
-                  defaultValue={employee.name}
-                  className={inputClass}
-                />
+                <input name="name" required defaultValue={employee.name} className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>Role</label>
@@ -139,20 +125,14 @@ export function EmployeeRow({
               Active (can sign in)
             </label>
             <div className="mt-4 flex items-center gap-3">
-              <button type="submit" className={btnPrimary}>
+              <button type="submit" disabled={pending} className={btnPrimary}>
                 Save
               </button>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className={btnSecondary}
-              >
+              <button type="button" onClick={() => setEditing(false)} className={btnSecondary}>
                 Cancel
               </button>
-              {state.error ? (
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {state.error}
-                </p>
+              {error ? (
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               ) : null}
             </div>
           </form>

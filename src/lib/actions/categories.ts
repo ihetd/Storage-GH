@@ -19,7 +19,6 @@ function revalidate() {
 }
 
 export async function createCategory(
-  _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireRole(["ADMIN"]);
@@ -46,7 +45,6 @@ export async function createCategory(
 }
 
 export async function updateCategory(
-  _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireRole(["ADMIN"]);

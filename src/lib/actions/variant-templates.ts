@@ -34,7 +34,6 @@ function revalidate() {
 }
 
 export async function createVariantTemplate(
-  _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireRole(["ADMIN"]);
@@ -62,7 +61,6 @@ export async function createVariantTemplate(
 }
 
 export async function updateVariantTemplate(
-  _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireRole(["ADMIN"]);

@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { createProduct, updateProduct } from "@/lib/actions/products";
-import { initialFormState } from "@/lib/actions/types";
+import { useFormAction } from "@/lib/use-form-action";
 import {
   btnPrimary,
   btnSecondary,
@@ -52,7 +52,7 @@ export function ProductForm({
 }) {
   const isEdit = !!product;
   const action = isEdit ? updateProduct : createProduct;
-  const [state, formAction, pending] = useActionState(action, initialFormState);
+  const { run, pending, error } = useFormAction(action);
 
   const [attributeLabel, setAttributeLabel] = useState(
     product?.attributeLabel ?? "Size",
@@ -104,7 +104,7 @@ export function ProductForm({
   }
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={run} className="space-y-6">
       {isEdit ? <input type="hidden" name="id" value={product!.id} /> : null}
       <input type="hidden" name="attributeLabel" value={attributeLabel} />
       <input type="hidden" name="variants" value={serializedVariants} />
@@ -237,9 +237,9 @@ export function ProductForm({
         </button>
       </div>
 
-      {state.error ? (
+      {error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
-          {state.error}
+          {error}
         </p>
       ) : null}
 

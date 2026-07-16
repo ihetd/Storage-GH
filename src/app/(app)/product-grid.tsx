@@ -299,8 +299,10 @@ function StepButton({
 
 function Thumb({ name, imageUrl }: { name: string; imageUrl: string | null }) {
   if (imageUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // Product images come from arbitrary R2/public URLs (and blob previews);
+      // a plain <img> is intentional here rather than next/image.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={imageUrl}
         alt={name}
