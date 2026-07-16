@@ -10,6 +10,7 @@ import {
   inputClass,
   labelClass,
 } from "@/components/ui";
+import { ImageField } from "@/components/image-field";
 
 type Category = { id: string; name: string };
 type Template = {
@@ -31,6 +32,8 @@ type ExistingProduct = {
   categoryId: string;
   attributeLabel: string;
   variantTemplateId: string | null;
+  imageUrl: string | null;
+  imageKey: string | null;
   variants: { id: string; label: string; quantity: number }[];
 };
 
@@ -137,10 +140,14 @@ export function ProductForm({
         </div>
       </div>
 
-      {/* Image upload is added in a later phase; products save fine without one. */}
-      <div className="rounded-xl border border-dashed border-slate-300 px-4 py-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-        Product image upload is configured separately (Cloudflare R2). Products
-        can be saved without a picture for now.
+      <div>
+        <label className={labelClass}>Product image</label>
+        <div className="mt-2">
+          <ImageField
+            initialImageUrl={product?.imageUrl}
+            initialImageKey={product?.imageKey}
+          />
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">

@@ -42,6 +42,8 @@ export default async function EditProductPage({
             categoryId: product.categoryId,
             attributeLabel: product.attributeLabel,
             variantTemplateId: product.variantTemplateId,
+            imageUrl: product.imageUrl,
+            imageKey: product.imageKey,
             variants: product.variants.map((v) => ({
               id: v.id,
               label: v.label,
