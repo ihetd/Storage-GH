@@ -1,17 +1,43 @@
+import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/rbac";
+import { canAdjustStock } from "@/lib/roles";
+import { ProductGrid } from "./product-grid";
 
-// Placeholder home. Replaced by the product grid + stock accordion in a later
-// phase.
+export const metadata = { title: "Stock · Shop Inventory" };
+
 export default async function HomePage() {
   const user = await requireUser();
+
+  const [products, categories] = await Promise.all([
+    prisma.product.findMany({
+      orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
+      include: {
+        category: { select: { id: true, name: true } },
+        variants: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
+    prisma.category.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
+  ]);
+
   return (
-    <div className="space-y-2">
-      <h1 className="text-xl font-bold">Stock</h1>
-      <p className="text-sm text-slate-600 dark:text-slate-400">
-        Signed in as{" "}
-        <span className="font-medium">{user.name || user.username}</span> (
-        {user.role}). Product grid coming next.
-      </p>
-    </div>
+    <ProductGrid
+      canAdjust={canAdjustStock(user.role)}
+      categories={categories}
+      products={products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        imageUrl: p.imageUrl,
+        attributeLabel: p.attributeLabel,
+        category: p.category,
+        variants: p.variants.map((v) => ({
+          id: v.id,
+          label: v.label,
+          quantity: v.quantity,
+        })),
+      }))}
+    />
   );
 }
