@@ -1,4 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 // Cloudflare R2 (S3-compatible) helpers. Everything here tolerates missing
 // credentials so the rest of the app works before R2 is set up: callers should
@@ -58,4 +58,21 @@ export function publicUrlForKey(
 ): string | null {
   if (!config.publicBaseUrl) return null;
   return `${config.publicBaseUrl.replace(/\/$/, "")}/${key}`;
+}
+
+// Best-effort delete of an uploaded object (used when a product image is
+// replaced or its product is deleted, so the bucket doesn't accumulate
+// orphans). Failures are swallowed: a stale object is harmless, whereas
+// failing the user's save/delete over cleanup would be worse.
+export async function deleteFromR2(key: string | null | undefined): Promise<void> {
+  if (!key) return;
+  const config = getR2Config();
+  if (!config) return;
+  try {
+    await getR2Client(config).send(
+      new DeleteObjectCommand({ Bucket: config.bucket, Key: key }),
+    );
+  } catch (e) {
+    console.warn(`R2 cleanup failed for ${key}:`, e);
+  }
 }

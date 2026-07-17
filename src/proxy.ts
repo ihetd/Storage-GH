@@ -15,18 +15,23 @@ export default auth((req) => {
   const role = req.auth?.user?.role;
 
   const isLoginPage = nextUrl.pathname === "/login";
+  const isApi = nextUrl.pathname.startsWith("/api");
+
   const isDashboard = nextUrl.pathname.startsWith("/dashboard");
 
-  // Already signed in and visiting /login → send home.
+  // /login is public. (The page itself redirects users whose account is still
+  // active — deciding that requires a DB read, which can't happen here at the
+  // edge. Redirecting on the JWT alone would loop for deactivated accounts.)
   if (isLoginPage) {
-    if (isLoggedIn) {
-      return NextResponse.redirect(new URL("/", nextUrl));
-    }
     return NextResponse.next();
   }
 
-  // Everything else requires auth.
+  // Everything else requires auth. API calls get a JSON 401 (redirecting a
+  // fetch() to the login page just hands it HTML); pages get the redirect.
   if (!isLoggedIn) {
+    if (isApi) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const loginUrl = new URL("/login", nextUrl);
     loginUrl.searchParams.set("callbackUrl", nextUrl.pathname + nextUrl.search);
     return NextResponse.redirect(loginUrl);

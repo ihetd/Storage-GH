@@ -21,6 +21,9 @@ type VariantState = {
   error: string | null;
 };
 
+// At or below this quantity a variant is flagged as running low.
+const LOW_STOCK_AT = 3;
+
 export function ProductGrid({
   products,
   categories,
@@ -167,7 +170,12 @@ export function ProductGrid({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold tabular-nums text-gold">
+                    <div
+                      className={clsx(
+                        "text-sm font-semibold tabular-nums",
+                        total === 0 ? "text-red-400" : "text-gold",
+                      )}
+                    >
                       {total}
                     </div>
                     <div className="text-[10px] uppercase tracking-wide text-cream/40">
@@ -208,7 +216,16 @@ export function ProductGrid({
                                 >
                                   −
                                 </StepButton>
-                                <span className="w-10 text-center text-sm font-semibold tabular-nums text-cream">
+                                <span
+                                  className={clsx(
+                                    "w-10 text-center text-sm font-semibold tabular-nums",
+                                    qty === 0
+                                      ? "text-red-400"
+                                      : qty <= LOW_STOCK_AT
+                                        ? "text-amber-400"
+                                        : "text-cream",
+                                  )}
+                                >
                                   {qty}
                                 </span>
                                 <StepButton
@@ -220,13 +237,24 @@ export function ProductGrid({
                                 </StepButton>
                               </div>
                             ) : (
-                              <span className="text-sm font-semibold tabular-nums text-cream">
+                              <span
+                                className={clsx(
+                                  "text-sm font-semibold tabular-nums",
+                                  qty === 0
+                                    ? "text-red-400"
+                                    : qty <= LOW_STOCK_AT
+                                      ? "text-amber-400"
+                                      : "text-cream",
+                                )}
+                              >
                                 {qty}{" "}
                                 <span className="text-xs font-normal text-cream/40">
                                   in stock
                                 </span>
                               </span>
                             )}
+
+                            <StockFlag qty={qty} />
 
                             {st?.error ? (
                               <span className="text-xs text-red-400">
@@ -246,6 +274,25 @@ export function ProductGrid({
       )}
     </div>
   );
+}
+
+// "Out" / "Low" flag shown next to a variant's controls.
+function StockFlag({ qty }: { qty: number }) {
+  if (qty === 0) {
+    return (
+      <span className="rounded-full bg-red-950/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-400 ring-1 ring-inset ring-red-900">
+        Out
+      </span>
+    );
+  }
+  if (qty <= LOW_STOCK_AT) {
+    return (
+      <span className="rounded-full bg-amber-950/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400 ring-1 ring-inset ring-amber-900">
+        Low
+      </span>
+    );
+  }
+  return null;
 }
 
 function FilterChip({

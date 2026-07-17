@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import type { Role } from "@/lib/roles";
 
 export type SessionUser = {
@@ -12,9 +13,28 @@ export type SessionUser = {
 
 // --- Page helpers (redirect on failure) -----------------------------------
 
+// Authoritative current-user lookup. The JWT only proves identity; role and
+// active status are re-read from the DB so that deactivating an employee or
+// changing their role takes effect immediately instead of when the token
+// expires. (The edge proxy still uses the JWT alone — it's just the coarse
+// first gate.)
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const session = await auth();
-  return (session?.user as SessionUser) ?? null;
+  const id = (session?.user as SessionUser | undefined)?.id;
+  if (!id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, username: true, name: true, role: true, active: true },
+  });
+  if (!user || !user.active) return null;
+
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    role: user.role as Role,
+  };
 }
 
 // Require any authenticated user; redirect to /login otherwise.

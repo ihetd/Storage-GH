@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
+import { deleteFromR2 } from "@/lib/r2";
 import type { ActionResult, FormState } from "./types";
 
 const variantSchema = z.object({
@@ -115,6 +116,17 @@ export async function updateProduct(
   const { data, error } = parse(formData);
   if (!data) return { error };
 
+  // If the image was replaced or removed, clean up the old R2 object.
+  const before = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { imageKey: true },
+  });
+  if (!before) return { error: "Product not found" };
+  const oldImageKey =
+    before.imageKey && before.imageKey !== (data.imageKey || null)
+      ? before.imageKey
+      : null;
+
   const existing = await prisma.productVariant.findMany({
     where: { productId },
     select: { id: true },
@@ -164,6 +176,10 @@ export async function updateProduct(
     throw e;
   }
 
+  // Only after the DB update succeeded — never delete the object out from
+  // under a product that failed to save.
+  await deleteFromR2(oldImageKey);
+
   revalidate();
   redirect("/dashboard/products");
 }
@@ -171,7 +187,11 @@ export async function updateProduct(
 export async function deleteProduct(id: string): Promise<ActionResult> {
   await requireRole(["ADMIN"]);
   // Cascade removes variants and their stock adjustments.
-  await prisma.product.delete({ where: { id } });
+  const deleted = await prisma.product.delete({
+    where: { id },
+    select: { imageKey: true },
+  });
+  await deleteFromR2(deleted.imageKey);
   revalidate();
   return {};
 }
