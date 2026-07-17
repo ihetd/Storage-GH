@@ -1,26 +1,40 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+/*
+ * Brand palette (dark-only):
+ *  - maroon  #7A1F1F  primary actions / brand accents
+ *  - ink     #080808  page background
+ *  - gold    #C8AA7A  heading typography
+ *  - cream   #F2E9DC  body text
+ * surface/raised/edge are warm near-blacks derived from ink for cards,
+ * inputs and borders.
+ */
+@theme {
+  --color-ink: #080808;
+  --color-surface: #131010;
+  --color-raised: #1c1615;
+  --color-edge: #2d2320;
+  --color-maroon: #7a1f1f;
+  --color-maroon-light: #953030;
+  --color-maroon-dark: #571414;
+  --color-gold: #c8aa7a;
+  --color-cream: #f2e9dc;
+  --font-sans: var(--font-geist-sans), var(--font-arabic);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair), var(--font-arabic);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ink);
+  color: var(--color-cream);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-maroon);
+  color: var(--color-cream);
 }

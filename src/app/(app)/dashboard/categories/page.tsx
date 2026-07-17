@@ -27,7 +27,7 @@ export default async function CategoriesPage() {
         <Card className="p-0">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-slate-400">
+              <tr className="text-left text-xs uppercase tracking-wide text-cream/45">
                 <th className="px-3 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Sort</th>
                 <th className="px-3 py-2" />

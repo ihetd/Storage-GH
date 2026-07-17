@@ -16,7 +16,7 @@ export function DashboardTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="mb-6 flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800">
+    <nav className="mb-6 flex flex-wrap gap-1 border-b border-edge">
       {tabs.map((tab) => {
         const active = tab.exact
           ? pathname === tab.href
@@ -28,8 +28,8 @@ export function DashboardTabs() {
             className={clsx(
               "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition",
               active
-                ? "border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300"
-                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200",
+                ? "border-gold text-gold"
+                : "border-transparent text-cream/55 hover:text-cream",
             )}
           >
             {tab.label}

@@ -58,8 +58,13 @@ export function EmployeeCreateForm() {
           <input name="password" type="password" required className={inputClass} />
         </div>
       </div>
-      <label className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-        <input type="checkbox" name="active" defaultChecked className="h-4 w-4" />
+      <label className="mt-3 flex items-center gap-2 text-sm text-cream/70">
+        <input
+          type="checkbox"
+          name="active"
+          defaultChecked
+          className="h-4 w-4 accent-maroon"
+        />
         Active (can sign in)
       </label>
       <div className="mt-4 flex items-center gap-3">
@@ -67,7 +72,7 @@ export function EmployeeCreateForm() {
           Add employee
         </button>
         {error ? (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-red-400">{error}</p>
         ) : null}
       </div>
     </form>
@@ -88,7 +93,7 @@ export function EmployeeRow({
 
   if (editing) {
     return (
-      <tr className="border-t border-slate-100 dark:border-slate-800">
+      <tr className="border-t border-edge/60">
         <td colSpan={4} className="px-3 py-3">
           <form action={run}>
             <input type="hidden" name="id" value={employee.id} />
@@ -108,19 +113,19 @@ export function EmployeeRow({
               <div>
                 <label className={labelClass}>
                   New password{" "}
-                  <span className="font-normal text-slate-400">
+                  <span className="font-normal text-cream/45">
                     (blank = unchanged)
                   </span>
                 </label>
                 <input name="password" type="password" className={inputClass} />
               </div>
             </div>
-            <label className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <label className="mt-3 flex items-center gap-2 text-sm text-cream/70">
               <input
                 type="checkbox"
                 name="active"
                 defaultChecked={employee.active}
-                className="h-4 w-4"
+                className="h-4 w-4 accent-maroon"
               />
               Active (can sign in)
             </label>
@@ -132,7 +137,7 @@ export function EmployeeRow({
                 Cancel
               </button>
               {error ? (
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-sm text-red-400">{error}</p>
               ) : null}
             </div>
           </form>
@@ -142,10 +147,10 @@ export function EmployeeRow({
   }
 
   return (
-    <tr className="border-t border-slate-100 dark:border-slate-800">
+    <tr className="border-t border-edge/60">
       <td className="px-3 py-2.5">
-        <div className="font-medium">{employee.name}</div>
-        <div className="text-xs text-slate-500 dark:text-slate-400">
+        <div className="font-medium text-cream">{employee.name}</div>
+        <div className="text-xs text-cream/50">
           @{employee.username}
           {isSelf ? " · you" : ""}
         </div>
@@ -155,11 +160,9 @@ export function EmployeeRow({
       </td>
       <td className="px-3 py-2.5">
         {employee.active ? (
-          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-            Active
-          </span>
+          <span className="text-xs font-medium text-emerald-400">Active</span>
         ) : (
-          <span className="text-xs font-medium text-slate-400">Inactive</span>
+          <span className="text-xs font-medium text-cream/40">Inactive</span>
         )}
       </td>
       <td className="px-3 py-2.5 text-right">
@@ -167,7 +170,7 @@ export function EmployeeRow({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+            className="text-xs font-medium text-gold hover:underline"
           >
             Edit
           </button>

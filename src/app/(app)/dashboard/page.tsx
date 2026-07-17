@@ -32,13 +32,11 @@ export default async function DashboardOverview() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {cards.map((c) => (
           <Link key={c.href} href={c.href} className="block">
-            <Card className="transition hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-700">
-              <div className="text-3xl font-bold text-slate-900 dark:text-white">
+            <Card className="transition hover:border-gold/40">
+              <div className="font-display text-3xl font-semibold text-gold">
                 {c.value}
               </div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {c.label}
-              </div>
+              <div className="mt-1 text-sm text-cream/55">{c.label}</div>
             </Card>
           </Link>
         ))}

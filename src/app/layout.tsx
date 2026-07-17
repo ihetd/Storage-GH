@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  IBM_Plex_Sans_Arabic,
+  Playfair_Display,
+} from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,8 +17,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Serif display face reserved for headings (paired with the gold heading color).
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+});
+
+// Arabic fallback: Geist/Playfair have no Arabic glyphs, so Arabic text
+// (e.g. category or product names) falls through to IBM Plex Sans Arabic.
+const plexArabic = IBM_Plex_Sans_Arabic({
+  variable: "--font-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "Shop Inventory",
+  title: "GymHood Storage",
   description: "Internal stock management",
 };
 
@@ -25,11 +44,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${plexArabic.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-        {children}
-      </body>
+      <body className="min-h-full bg-ink text-cream">{children}</body>
     </html>
   );
 }

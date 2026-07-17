@@ -45,7 +45,7 @@ function Fields({ template }: { template?: Template }) {
       <div className="mt-3">
         <label className={labelClass}>
           Options{" "}
-          <span className="font-normal text-slate-400">
+          <span className="font-normal text-cream/45">
             (comma or newline separated)
           </span>
         </label>
@@ -76,7 +76,7 @@ export function TemplateCreateForm() {
           Add template
         </button>
         {error ? (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-red-400">{error}</p>
         ) : null}
       </div>
     </form>
@@ -91,7 +91,7 @@ export function TemplateRow({ template }: { template: Template }) {
 
   if (editing) {
     return (
-      <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
+      <div className="rounded-xl border border-gold/40 bg-raised/50 p-4">
         <form action={run}>
           <input type="hidden" name="id" value={template.id} />
           <Fields template={template} />
@@ -103,7 +103,7 @@ export function TemplateRow({ template }: { template: Template }) {
               Cancel
             </button>
             {error ? (
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <p className="text-sm text-red-400">{error}</p>
             ) : null}
           </div>
         </form>
@@ -112,17 +112,17 @@ export function TemplateRow({ template }: { template: Template }) {
   }
 
   return (
-    <div className="flex items-start justify-between gap-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+    <div className="flex items-start justify-between gap-4 rounded-xl border border-edge bg-surface p-4">
       <div>
-        <div className="font-medium">{template.name}</div>
-        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+        <div className="font-medium text-cream">{template.name}</div>
+        <div className="mt-0.5 text-xs text-cream/50">
           {template.attributeLabel}
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {template.options.map((o) => (
             <span
               key={o}
-              className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              className="rounded-md bg-ink/60 px-2 py-0.5 text-xs font-medium text-cream/80 ring-1 ring-inset ring-edge"
             >
               {o}
             </span>
@@ -133,7 +133,7 @@ export function TemplateRow({ template }: { template: Template }) {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          className="text-xs font-medium text-gold hover:underline"
         >
           Edit
         </button>

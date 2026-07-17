@@ -150,19 +150,17 @@ export function ProductForm({
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+      <div className="rounded-xl border border-edge p-4">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Variants
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <h2 className="text-sm font-semibold text-gold">Variants</h2>
+            <p className="text-xs text-cream/50">
               e.g. sizes or colors, each with its own stock count.
             </p>
           </div>
           {templates.length > 0 ? (
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+              <label className="mb-1 block text-xs font-medium text-cream/60">
                 Prefill from template
               </label>
               <select
@@ -188,7 +186,7 @@ export function ProductForm({
           )}
         </div>
 
-        <div className="mb-2 grid grid-cols-[1fr_7rem_2.5rem] gap-2 text-xs font-medium text-slate-400">
+        <div className="mb-2 grid grid-cols-[1fr_7rem_2.5rem] gap-2 text-xs font-medium text-cream/45">
           <span>{attributeLabel} label</span>
           <span>Quantity</span>
           <span />
@@ -220,7 +218,7 @@ export function ProductForm({
                 type="button"
                 onClick={() => removeVariant(v.key)}
                 aria-label="Remove variant"
-                className="rounded-md border border-slate-300 py-2 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                className="rounded-md border border-edge py-2 text-cream/50 transition hover:bg-raised hover:text-cream"
               >
                 ✕
               </button>
@@ -231,14 +229,14 @@ export function ProductForm({
         <button
           type="button"
           onClick={addVariant}
-          className="mt-3 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          className="mt-3 text-sm font-medium text-gold hover:underline"
         >
           + Add variant
         </button>
       </div>
 
       {error ? (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
+        <p className="rounded-lg border border-red-900/50 bg-red-950/40 px-3 py-2 text-sm text-red-300">
           {error}
         </p>
       ) : null}

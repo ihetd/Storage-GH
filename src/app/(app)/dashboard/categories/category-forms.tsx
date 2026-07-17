@@ -21,13 +21,13 @@ export function CategoryCreateForm() {
   return (
     <form ref={formRef} action={run} className="flex flex-wrap items-end gap-3">
       <div className="min-w-48 flex-1">
-        <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+        <label className="mb-1 block text-xs font-medium text-cream/60">
           Name
         </label>
         <input name="name" required placeholder="e.g. Hoodies" className={inputClass} />
       </div>
       <div className="w-24">
-        <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+        <label className="mb-1 block text-xs font-medium text-cream/60">
           Sort
         </label>
         <input name="sortOrder" type="number" defaultValue={0} min={0} className={inputClass} />
@@ -36,7 +36,7 @@ export function CategoryCreateForm() {
         Add category
       </button>
       {error ? (
-        <p className="w-full text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="w-full text-sm text-red-400">{error}</p>
       ) : null}
     </form>
   );
@@ -50,7 +50,7 @@ export function CategoryRow({ category }: { category: Category }) {
 
   if (editing) {
     return (
-      <tr className="border-t border-slate-100 dark:border-slate-800">
+      <tr className="border-t border-edge/60">
         <td colSpan={3} className="px-3 py-2">
           <form action={run} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="id" value={category.id} />
@@ -73,7 +73,7 @@ export function CategoryRow({ category }: { category: Category }) {
               Cancel
             </button>
             {error ? (
-              <p className="w-full text-sm text-red-600 dark:text-red-400">{error}</p>
+              <p className="w-full text-sm text-red-400">{error}</p>
             ) : null}
           </form>
         </td>
@@ -82,17 +82,15 @@ export function CategoryRow({ category }: { category: Category }) {
   }
 
   return (
-    <tr className="border-t border-slate-100 dark:border-slate-800">
-      <td className="px-3 py-2.5 font-medium">{category.name}</td>
-      <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400">
-        {category.sortOrder}
-      </td>
+    <tr className="border-t border-edge/60">
+      <td className="px-3 py-2.5 font-medium text-cream">{category.name}</td>
+      <td className="px-3 py-2.5 text-cream/60">{category.sortOrder}</td>
       <td className="px-3 py-2.5 text-right">
         <span className="inline-flex items-center gap-3">
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+            className="text-xs font-medium text-gold hover:underline"
           >
             Edit
           </button>

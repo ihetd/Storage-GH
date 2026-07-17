@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/rbac";
 import { canAdjustStock } from "@/lib/roles";
 import { ProductGrid } from "./product-grid";
 
-export const metadata = { title: "Stock · Shop Inventory" };
+export const metadata = { title: "Stock · GymHood Storage" };
 
 export default async function HomePage() {
   const user = await requireUser();

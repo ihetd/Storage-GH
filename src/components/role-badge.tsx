@@ -2,11 +2,9 @@ import { clsx } from "clsx";
 import type { Role } from "@/lib/roles";
 
 const styles: Record<Role, string> = {
-  ADMIN:
-    "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
-  EDITOR:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  VIEWER: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  ADMIN: "bg-gold/15 text-gold ring-1 ring-inset ring-gold/40",
+  EDITOR: "bg-maroon/30 text-cream ring-1 ring-inset ring-maroon/70",
+  VIEWER: "bg-raised text-cream/60 ring-1 ring-inset ring-edge",
 };
 
 export function RoleBadge({ role }: { role: Role }) {

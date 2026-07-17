@@ -43,6 +43,11 @@ export function getR2Client(config: R2Config): S3Client {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    // AWS SDK v3 injects a CRC32 checksum by default; for presigned PUTs it bakes
+    // an empty-payload checksum into the signed URL, which R2 then rejects (403)
+    // once the real body is uploaded. Only add checksums when the API requires it.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 

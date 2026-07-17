@@ -120,7 +120,7 @@ export function ImageField({
       <input type="hidden" name="imageKey" value={imageKey} />
 
       <div className="flex items-start gap-4">
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-edge bg-raised">
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -129,7 +129,7 @@ export function ImageField({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="text-xs text-slate-400">No image</span>
+            <span className="text-xs text-cream/40">No image</span>
           )}
         </div>
 
@@ -146,21 +146,21 @@ export function ImageField({
               <button
                 type="button"
                 onClick={removeImage}
-                className="text-sm font-medium text-red-600 hover:underline dark:text-red-400"
+                className="text-sm font-medium text-red-400 hover:underline"
               >
                 Remove
               </button>
             ) : null}
           </div>
-          <p className="max-w-xs text-xs text-slate-500 dark:text-slate-400">
+          <p className="max-w-xs text-xs text-cream/50">
             Optional. Crop & zoom before uploading. Works only once Cloudflare R2
             is configured; products save fine without a picture.
           </p>
           {status.kind === "uploading" ? (
-            <p className="text-xs text-slate-500">Uploading…</p>
+            <p className="text-xs text-cream/50">Uploading…</p>
           ) : null}
           {status.kind === "error" ? (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
+            <p className="text-xs text-amber-400">
               {status.message}
             </p>
           ) : null}
@@ -176,12 +176,10 @@ export function ImageField({
       />
 
       {status.kind === "cropping" ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl dark:bg-slate-900">
-            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
-              Crop image
-            </h3>
-            <div className="relative h-64 w-full overflow-hidden rounded-lg bg-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-edge bg-surface p-4 shadow-xl shadow-black/50">
+            <h3 className="mb-3 text-sm font-semibold text-gold">Crop image</h3>
+            <div className="relative h-64 w-full overflow-hidden rounded-lg bg-ink">
               <Cropper
                 image={status.src}
                 crop={crop}
@@ -193,7 +191,7 @@ export function ImageField({
               />
             </div>
             <div className="mt-3">
-              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+              <label className="mb-1 block text-xs font-medium text-cream/60">
                 Zoom
               </label>
               <input
@@ -203,7 +201,7 @@ export function ImageField({
                 step={0.01}
                 value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
-                className="w-full"
+                className="w-full accent-maroon"
               />
             </div>
             <div className="mt-4 flex justify-end gap-2">

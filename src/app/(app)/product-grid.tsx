@@ -105,7 +105,7 @@ export function ProductGrid({
   return (
     <div>
       <div className="mb-5 space-y-3">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+        <h1 className="font-display text-2xl font-semibold tracking-wide text-gold">
           Stock
         </h1>
 
@@ -114,7 +114,7 @@ export function ProductGrid({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search products…"
-          className="w-full max-w-sm rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-indigo-900"
+          className="w-full max-w-sm rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-cream placeholder:text-cream/35 outline-none transition focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
         />
 
         <div className="flex flex-wrap gap-2">
@@ -137,7 +137,7 @@ export function ProductGrid({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 px-4 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+        <div className="rounded-xl border border-dashed border-edge px-4 py-12 text-center text-sm text-cream/50">
           No products match.
         </div>
       ) : (
@@ -148,35 +148,35 @@ export function ProductGrid({
             return (
               <div
                 key={p.id}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                className="overflow-hidden rounded-xl border border-edge bg-surface"
               >
                 <button
                   type="button"
                   onClick={() => setExpandedId(expanded ? null : p.id)}
                   aria-expanded={expanded}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-raised/60"
                 >
                   <Thumb name={p.name} imageUrl={p.imageUrl} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-slate-900 dark:text-white">
+                    <div className="truncate font-medium text-cream">
                       {p.name}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                    <div className="text-xs text-cream/50">
                       {p.category.name} · {p.variants.length}{" "}
                       {p.variants.length === 1 ? "variant" : "variants"}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                    <div className="text-sm font-semibold tabular-nums text-gold">
                       {total}
                     </div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-400">
+                    <div className="text-[10px] uppercase tracking-wide text-cream/40">
                       in stock
                     </div>
                   </div>
                   <span
                     className={clsx(
-                      "ml-1 text-slate-400 transition-transform",
+                      "ml-1 text-cream/40 transition-transform",
                       expanded && "rotate-180",
                     )}
                   >
@@ -185,7 +185,7 @@ export function ProductGrid({
                 </button>
 
                 {expanded ? (
-                  <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800">
+                  <div className="border-t border-edge px-4 py-3">
                     <div className="grid gap-2">
                       {p.variants.map((v) => {
                         const st = vstate[v.id];
@@ -193,9 +193,9 @@ export function ProductGrid({
                         return (
                           <div
                             key={v.id}
-                            className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
+                            className="flex items-center gap-3 rounded-lg bg-ink/60 px-3 py-2"
                           >
-                            <span className="w-16 shrink-0 text-sm font-medium text-slate-700 dark:text-slate-200">
+                            <span className="w-16 shrink-0 text-sm font-medium text-cream/85">
                               {v.label}
                             </span>
 
@@ -208,7 +208,7 @@ export function ProductGrid({
                                 >
                                   −
                                 </StepButton>
-                                <span className="w-10 text-center text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                                <span className="w-10 text-center text-sm font-semibold tabular-nums text-cream">
                                   {qty}
                                 </span>
                                 <StepButton
@@ -220,16 +220,16 @@ export function ProductGrid({
                                 </StepButton>
                               </div>
                             ) : (
-                              <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                              <span className="text-sm font-semibold tabular-nums text-cream">
                                 {qty}{" "}
-                                <span className="text-xs font-normal text-slate-400">
+                                <span className="text-xs font-normal text-cream/40">
                                   in stock
                                 </span>
                               </span>
                             )}
 
                             {st?.error ? (
-                              <span className="text-xs text-red-600 dark:text-red-400">
+                              <span className="text-xs text-red-400">
                                 {st.error}
                               </span>
                             ) : null}
@@ -264,8 +264,8 @@ function FilterChip({
       className={clsx(
         "rounded-full px-3 py-1 text-sm font-medium transition",
         active
-          ? "bg-indigo-600 text-white"
-          : "bg-white text-slate-600 ring-1 ring-slate-300 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-800",
+          ? "bg-maroon text-cream"
+          : "bg-surface text-cream/70 ring-1 ring-edge hover:text-cream hover:ring-gold/40",
       )}
     >
       {children}
@@ -290,7 +290,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-semibold text-slate-700 transition hover:bg-slate-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-edge bg-surface text-lg font-semibold text-cream transition hover:border-gold/40 hover:text-gold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>
@@ -316,7 +316,7 @@ function Thumb({ name, imageUrl }: { name: string; imageUrl: string | null }) {
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
   return (
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-400 dark:bg-slate-800">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-raised text-xs font-semibold text-gold/60">
       {initials || "?"}
     </div>
   );

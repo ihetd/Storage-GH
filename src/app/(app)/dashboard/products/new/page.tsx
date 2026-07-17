@@ -22,7 +22,7 @@ export default async function NewProductPage() {
       <div>
         <PageHeader title="New product" />
         <Card>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-cream/70">
             Create a category first, then come back to add products.
           </p>
         </Card>
