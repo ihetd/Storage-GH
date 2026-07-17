@@ -98,6 +98,28 @@ to R2 with a presigned URL.
 | `npm run db:reset`| Drop, re-migrate, and re-seed the DB |
 | `npm run test:e2e`| Playwright end-to-end tests          |
 
+## Deployment (Vercel + Neon)
+
+1. **Database** — create a Neon project. Copy two connection strings:
+   - the **pooled** URL (host contains `-pooler`) → `DATABASE_URL`
+   - the **direct** URL (no `-pooler`) → `DIRECT_URL`
+2. **Vercel** — import the GitHub repo. No build config needed: `postinstall`
+   runs `prisma generate`, and `build` runs `prisma migrate deploy` (applies
+   migrations to Neon) then `next build`.
+3. **Environment variables** (Vercel → Project → Settings → Environment
+   Variables):
+   - `DATABASE_URL`, `DIRECT_URL` (from Neon)
+   - `AUTH_SECRET` (generate: `openssl rand -base64 32`), `AUTH_TRUST_HOST=true`
+   - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
+     `R2_PUBLIC_BASE_URL`
+   - `SEED_PASSWORD` (only if you plan to run the seed)
+4. **First deploy** applies the schema automatically. To create the initial
+   accounts, run the seed once against the production DB (locally, with
+   `DATABASE_URL`/`DIRECT_URL` pointed at Neon): `npm run db:seed` — then change
+   the seeded passwords.
+5. **R2 CORS** — add your Vercel URL (e.g. `https://your-app.vercel.app`) to the
+   bucket's CORS `AllowedOrigins`, alongside `http://localhost:3000`.
+
 ## Notes
 
 - `src/proxy.ts` uses Next 16's `proxy` file convention (the renamed

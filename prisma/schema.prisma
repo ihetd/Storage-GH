@@ -6,8 +6,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled connection for the app (e.g. Neon's -pooler host on Vercel).
+  url       = env("DATABASE_URL")
+  // Direct connection for migrations (`prisma migrate deploy`). Locally this is
+  // the same as DATABASE_URL.
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
