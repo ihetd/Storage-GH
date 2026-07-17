@@ -45,9 +45,10 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
-// Run on everything except Next internals, the auth API, and static assets.
+// Run on everything except Next internals, the auth API, static assets, and the
+// public PWA manifest (the OS fetches it unauthenticated to install the app).
 export const config = {
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|manifest.webmanifest|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

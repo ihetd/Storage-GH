@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Geist,
   Geist_Mono,
@@ -32,8 +32,27 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
+  applicationName: "GymHood Storage",
   title: "GymHood Storage",
   description: "Internal stock management",
+  manifest: "/manifest.webmanifest",
+  // iOS "Add to Home Screen": fullscreen standalone, title, and status bar.
+  appleWebApp: {
+    capable: true,
+    title: "GymHood",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#080808",
+  // Fill the whole screen on notched iPhones when launched from the home screen.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
