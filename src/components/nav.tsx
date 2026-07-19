@@ -12,6 +12,7 @@ export function Nav({ user }: { user: SessionUser }) {
         <nav className="flex items-center gap-1">
           <Link
             href="/"
+            prefetch={true}
             className="rounded-md px-3 py-1.5 font-display text-sm font-semibold tracking-wide text-gold hover:bg-raised"
           >
             Stock
@@ -19,6 +20,7 @@ export function Nav({ user }: { user: SessionUser }) {
           {canAccessDashboard(user.role) ? (
             <Link
               href="/dashboard"
+              prefetch={true}
               className="rounded-md px-3 py-1.5 text-sm font-medium text-cream/70 hover:bg-raised hover:text-cream"
             >
               Dashboard
