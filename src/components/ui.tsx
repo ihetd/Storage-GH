@@ -67,3 +67,14 @@ export function EmptyState({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+// A pulsing placeholder block, used by route-level loading.tsx skeletons so a
+// navigation shows instant structure while the server render streams in.
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={clsx("animate-pulse rounded-md bg-raised", className)}
+      aria-hidden="true"
+    />
+  );
+}
