@@ -104,15 +104,23 @@ export async function updateEmployee(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  if (await wouldRemoveLastAdmin(id, parsed.data.role, parsed.data.active)) {
+  const { password, ...rest } = parsed.data;
+
+  // The admin guard (a DB read) and the bcrypt hash (CPU-bound) are
+  // independent — run them concurrently instead of back to back.
+  const [removesLastAdmin, passwordHash] = await Promise.all([
+    wouldRemoveLastAdmin(id, parsed.data.role, parsed.data.active),
+    password ? bcrypt.hash(password, 10) : Promise.resolve(undefined),
+  ]);
+
+  if (removesLastAdmin) {
     return {
       error: "You can't demote or deactivate the last active admin.",
     };
   }
 
-  const { password, ...rest } = parsed.data;
   const data: Prisma.UserUpdateInput = { ...rest };
-  if (password) data.passwordHash = await bcrypt.hash(password, 10);
+  if (passwordHash) data.passwordHash = passwordHash;
 
   try {
     await prisma.user.update({ where: { id }, data });

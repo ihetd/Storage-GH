@@ -353,6 +353,8 @@ function Thumb({ name, imageUrl }: { name: string; imageUrl: string | null }) {
       <img
         src={imageUrl}
         alt={name}
+        loading="lazy"
+        decoding="async"
         className="h-11 w-11 shrink-0 rounded-lg object-cover"
       />
     );

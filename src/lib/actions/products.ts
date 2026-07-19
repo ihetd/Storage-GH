@@ -116,21 +116,24 @@ export async function updateProduct(
   const { data, error } = parse(formData);
   if (!data) return { error };
 
-  // If the image was replaced or removed, clean up the old R2 object.
-  const before = await prisma.product.findUnique({
-    where: { id: productId },
-    select: { imageKey: true },
-  });
+  // These two reads are independent — fetch them concurrently.
+  const [before, existing] = await Promise.all([
+    // For image cleanup: the old R2 key, if the image was replaced or removed.
+    prisma.product.findUnique({
+      where: { id: productId },
+      select: { imageKey: true },
+    }),
+    prisma.productVariant.findMany({
+      where: { productId },
+      select: { id: true },
+    }),
+  ]);
   if (!before) return { error: "Product not found" };
   const oldImageKey =
     before.imageKey && before.imageKey !== (data.imageKey || null)
       ? before.imageKey
       : null;
 
-  const existing = await prisma.productVariant.findMany({
-    where: { productId },
-    select: { id: true },
-  });
   const submittedIds = new Set(
     data.variants.filter((v) => v.id).map((v) => v.id as string),
   );

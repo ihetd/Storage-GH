@@ -1,9 +1,30 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import Cropper from "react-easy-crop";
+import { useCallback, useRef, useState, type ComponentType } from "react";
+import dynamic from "next/dynamic";
+import type { CropperProps } from "react-easy-crop";
 import { getCroppedBlob, type PixelCrop } from "@/lib/cropImage";
 import { btnPrimary, btnSecondary } from "@/components/ui";
+
+// react-easy-crop is a heavy dependency that's only needed once the user opens
+// the crop dialog. Load it on demand so it stays out of the initial bundle for
+// the (frequently visited) add/edit-product page. The cast keeps the library's
+// defaultProps-based optional props optional (next/dynamic otherwise widens
+// them all to required).
+const Cropper = dynamic(
+  () =>
+    import("react-easy-crop").then(
+      (m) => m.default as unknown as ComponentType<Partial<CropperProps>>,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center text-xs text-cream/50">
+        Loading editor…
+      </div>
+    ),
+  },
+);
 
 type Status =
   | { kind: "idle" }
@@ -51,14 +72,16 @@ export function ImageField({
     const src = status.src;
     setStatus({ kind: "uploading" });
     try {
-      const blob = await getCroppedBlob(src, croppedPixels.current);
-
-      // 1) Ask the server for a presigned PUT URL.
-      const presign = await fetch("/api/uploads/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: "image/jpeg" }),
-      });
+      // 1) Crop the image (canvas work) and ask the server for a presigned PUT
+      // URL at the same time — neither depends on the other.
+      const [blob, presign] = await Promise.all([
+        getCroppedBlob(src, croppedPixels.current),
+        fetch("/api/uploads/presign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contentType: "image/jpeg" }),
+        }),
+      ]);
 
       if (presign.status === 503) {
         setStatus({

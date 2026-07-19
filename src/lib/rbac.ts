@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
@@ -18,7 +19,11 @@ export type SessionUser = {
 // changing their role takes effect immediately instead of when the token
 // expires. (The edge proxy still uses the JWT alone — it's just the coarse
 // first gate.)
-export async function getCurrentUser(): Promise<SessionUser | null> {
+//
+// Wrapped in React `cache()` so that a single request/render that touches this
+// through the layout, the page, and nested requireRole calls pays for the
+// auth() + DB round trip once, not three times.
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<SessionUser | null> {
   const session = await auth();
   const id = (session?.user as SessionUser | undefined)?.id;
   if (!id) return null;
@@ -35,7 +40,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     name: user.name,
     role: user.role as Role,
   };
-}
+});
 
 // Require any authenticated user; redirect to /login otherwise.
 export async function requireUser(): Promise<SessionUser> {
