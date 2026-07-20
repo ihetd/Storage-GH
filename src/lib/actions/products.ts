@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -180,8 +181,9 @@ export async function updateProduct(
   }
 
   // Only after the DB update succeeded — never delete the object out from
-  // under a product that failed to save.
-  await deleteFromR2(oldImageKey);
+  // under a product that failed to save. Best-effort cleanup: run it after the
+  // response so the external R2 call doesn't delay the redirect.
+  after(() => deleteFromR2(oldImageKey));
 
   revalidate();
   redirect("/dashboard/products");
@@ -194,7 +196,8 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
     where: { id },
     select: { imageKey: true },
   });
-  await deleteFromR2(deleted.imageKey);
+  // Best-effort R2 cleanup after the response — don't make the UI wait on it.
+  after(() => deleteFromR2(deleted.imageKey));
   revalidate();
   return {};
 }

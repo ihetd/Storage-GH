@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 
 type Variant = { id: string; label: string; quantity: number };
@@ -39,6 +40,23 @@ export function ProductGrid({
 
   // variantId -> live state (seeded lazily from props on first interaction).
   const [vstate, setVstate] = useState<Record<string, VariantState>>({});
+
+  // Adjustments go through a route handler, which can't invalidate the router's
+  // client cache — so a navigation away and back within the staleTimes window
+  // would show pre-adjustment quantities. After a burst of clicks settles,
+  // refresh the route data in the background (the optimistic vstate overlays
+  // it, so nothing flickers).
+  const router = useRouter();
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function scheduleRefresh() {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => router.refresh(), 800);
+  }
+  useEffect(() => {
+    return () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    };
+  }, []);
 
   function qtyOf(v: Variant): number {
     return vstate[v.id]?.quantity ?? v.quantity;
@@ -93,6 +111,7 @@ export function ProductGrid({
         ...s,
         [v.id]: { quantity: data.quantity, pending: false, error: null },
       }));
+      scheduleRefresh();
     } catch {
       setVstate((s) => ({
         ...s,

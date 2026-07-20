@@ -35,40 +35,38 @@ export async function POST(
   }
   const { delta } = parsed.data;
 
-  // Does the variant exist at all? (distinguishes 404 from a floor violation)
-  const exists = await prisma.productVariant.findUnique({
-    where: { id },
-    select: { id: true },
-  });
-  if (!exists) {
-    return NextResponse.json({ error: "Variant not found" }, { status: 404 });
-  }
-
   // The WHERE clause is the atomic gate: quantity + delta >= 0  <=>  quantity >= max(0, -delta).
   // Two concurrent "-1" on quantity=1 → exactly one satisfies the guard.
+  // updateManyAndReturn folds the update + re-read into one statement, so the
+  // happy path is two queries instead of four.
   const resultingQty = await prisma.$transaction(async (tx) => {
-    const res = await tx.productVariant.updateMany({
+    const updated = await tx.productVariant.updateManyAndReturn({
       where: { id, quantity: { gte: Math.max(0, -delta) } },
       data: { quantity: { increment: delta } },
-    });
-    if (res.count === 0) return null;
-
-    const updated = await tx.productVariant.findUniqueOrThrow({
-      where: { id },
       select: { quantity: true },
     });
+    if (updated.length === 0) return null;
+
     await tx.stockAdjustment.create({
       data: {
         productVariantId: id,
         userId: user.id,
         delta,
-        resultingQty: updated.quantity,
+        resultingQty: updated[0].quantity,
       },
     });
-    return updated.quantity;
+    return updated[0].quantity;
   });
 
   if (resultingQty === null) {
+    // Failure path only: distinguish "no such variant" from a floor violation.
+    const exists = await prisma.productVariant.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!exists) {
+      return NextResponse.json({ error: "Variant not found" }, { status: 404 });
+    }
     return NextResponse.json(
       { error: "Stock can't go below zero." },
       { status: 409 },
