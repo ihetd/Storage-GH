@@ -71,6 +71,26 @@ export function ProductGrid({
     });
   }, [products, categoryId, query]);
 
+  // Sum of live quantities across the products currently shown. With no filter
+  // this is the grand total of every piece in storage; when a category chip is
+  // active it becomes that category's total — tap through chips to compare
+  // volume. Depends on vstate so it tracks +/- edits in real time.
+  const totalUnits = useMemo(
+    () =>
+      filtered.reduce(
+        (sum, p) => sum + p.variants.reduce((n, v) => n + qtyOf(v), 0),
+        0,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered, vstate],
+  );
+
+  const totalCaption = categoryId
+    ? `units in ${categories.find((c) => c.id === categoryId)?.name ?? "category"}`
+    : query.trim()
+      ? "units in view"
+      : "units in stock";
+
   async function adjust(v: Variant, delta: 1 | -1) {
     const current = qtyOf(v);
     if (delta === -1 && current <= 0) return; // nothing to remove
@@ -127,9 +147,19 @@ export function ProductGrid({
   return (
     <div>
       <div className="mb-5 space-y-3">
-        <h1 className="font-display text-2xl font-semibold tracking-wide text-gold">
-          Stock
-        </h1>
+        <div className="flex items-end justify-between gap-3">
+          <h1 className="font-display text-2xl font-semibold tracking-wide text-gold">
+            Stock
+          </h1>
+          <div className="text-right">
+            <div className="font-display text-3xl font-semibold leading-none text-gold tabular-nums">
+              {totalUnits}
+            </div>
+            <div className="mt-1 text-[10px] uppercase tracking-wide text-cream/40">
+              {totalCaption}
+            </div>
+          </div>
+        </div>
 
         <input
           type="search"
