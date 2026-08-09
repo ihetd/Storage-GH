@@ -178,14 +178,23 @@ export function ProductGrid({
   // this is the grand total of every piece in storage; when a category chip is
   // active it becomes that category's total — tap through chips to compare
   // volume. Depends on vstate so it tracks +/- edits in real time.
+  //
+  // With a size active this counts *only* that size, matching the "units in M"
+  // caption. Summing every size of the listed products instead would inflate
+  // the figure to nearly the grand total, since a product only has to hold one
+  // piece in that size to be listed.
   const totalUnits = useMemo(
     () =>
       sorted.reduce(
-        (sum, p) => sum + p.variants.reduce((n, v) => n + qtyOf(v), 0),
+        (sum, p) =>
+          sum +
+          (sizeFilter
+            ? (sizeTotalOf(p, qtyOf) ?? 0)
+            : p.variants.reduce((n, v) => n + qtyOf(v), 0)),
         0,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sorted, vstate],
+    [sorted, vstate, sizeFilter],
   );
 
   const totalCaption = useMemo(() => {
