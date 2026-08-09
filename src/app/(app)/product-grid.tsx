@@ -33,6 +33,13 @@ const SIZE_ATTRIBUTE = "Size";
 // filter can be used without any reordering.
 type SortMode = "normal" | "desc" | "asc";
 
+// Canonical form of a size label, used both to group sizes into one chip and as
+// the text on it. Variant labels are free text, so the same size can be stored
+// as "2xl" on one product and "2xL" on another.
+function sizeKey(label: string): string {
+  return label.trim().toUpperCase();
+}
+
 export function ProductGrid({
   products,
   categories,
@@ -92,19 +99,40 @@ export function ProductGrid({
     return basis.vstate[v.id]?.quantity ?? v.quantity;
   }
 
-  // Distinct size labels across size-axis products. First-seen order inherits
-  // the server's `orderBy: sortOrder`, so chips read S, M, L, XL — not
-  // alphabetically.
+  // Distinct sizes across size-axis products. Grouped case-insensitively and
+  // shown uppercase, so one product entered as "2xl" and another as "2xL" is a
+  // single 2XL chip rather than two. Stored labels are left exactly as typed —
+  // this only affects how the filter groups and displays them. First-seen order
+  // inherits the server's `orderBy: sortOrder`, so chips read S, M, L, XL, 2XL
+  // and not alphabetically.
   const sizeOptions = useMemo(() => {
     const seen: string[] = [];
     for (const p of products) {
       if (p.attributeLabel !== SIZE_ATTRIBUTE) continue;
       for (const v of p.variants) {
-        if (!seen.includes(v.label)) seen.push(v.label);
+        const key = sizeKey(v.label);
+        if (!seen.includes(key)) seen.push(key);
       }
     }
     return seen;
   }, [products]);
+
+  // Stock in the selected size, summed across every variant of this product
+  // whose label matches it. Null when the product has no such variant at all.
+  // Summing (rather than taking the first match) keeps the number honest if one
+  // product ever ends up with both spellings on separate rows.
+  function sizeTotalOf(p: Product, qty: (v: Variant) => number): number | null {
+    if (!sizeFilter) return null;
+    let found = false;
+    let n = 0;
+    for (const v of p.variants) {
+      if (sizeKey(v.label) === sizeFilter) {
+        found = true;
+        n += qty(v);
+      }
+    }
+    return found ? n : null;
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -114,8 +142,8 @@ export function ProductGrid({
       if (sizeFilter) {
         // A size chip means "still in stock in this size". Products on another
         // attribute axis have no matching label and fall out here too.
-        const match = p.variants.find((v) => v.label === sizeFilter);
-        if (!match || settledQtyOf(match) <= 0) return false;
+        const n = sizeTotalOf(p, settledQtyOf);
+        if (n === null || n <= 0) return false;
       }
       return true;
     });
@@ -125,10 +153,7 @@ export function ProductGrid({
   // Quantity a product is ranked by: the selected size's count when a size is
   // active, otherwise its total across every size.
   function sortQtyOf(p: Product): number {
-    if (sizeFilter) {
-      const match = p.variants.find((v) => v.label === sizeFilter);
-      return match ? settledQtyOf(match) : 0;
-    }
+    if (sizeFilter) return sizeTotalOf(p, settledQtyOf) ?? 0;
     return p.variants.reduce((n, v) => n + settledQtyOf(v), 0);
   }
 
@@ -325,9 +350,7 @@ export function ProductGrid({
             const total = p.variants.reduce((s, v) => s + qtyOf(v), 0);
             // With a size active the list is ranked by this number, so show it
             // alongside the all-sizes total that stays the headline.
-            const sizeMatch = sizeFilter
-              ? p.variants.find((v) => v.label === sizeFilter)
-              : undefined;
+            const sizeQty = sizeTotalOf(p, qtyOf);
             return (
               <div
                 key={p.id}
@@ -361,9 +384,9 @@ export function ProductGrid({
                     <div className="text-[10px] uppercase tracking-wide text-cream/40">
                       in stock
                     </div>
-                    {sizeMatch ? (
+                    {sizeQty !== null ? (
                       <div className="mt-0.5 text-[10px] tabular-nums text-gold/60">
-                        {qtyOf(sizeMatch)} in {sizeFilter}
+                        {sizeQty} in {sizeFilter}
                       </div>
                     ) : null}
                   </div>
@@ -383,7 +406,8 @@ export function ProductGrid({
                       {p.variants.map((v) => {
                         const st = vstate[v.id];
                         const qty = qtyOf(v);
-                        const highlighted = v.label === sizeFilter;
+                        const highlighted =
+                          sizeFilter !== null && sizeKey(v.label) === sizeFilter;
                         return (
                           <div
                             key={v.id}
