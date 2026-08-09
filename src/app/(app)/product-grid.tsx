@@ -25,6 +25,14 @@ type VariantState = {
 // At or below this quantity a variant is flagged as running low.
 const LOW_STOCK_AT = 3;
 
+// Only products measured along a size axis take part in the size filter;
+// other axes (Color, …) have labels that aren't sizes.
+const SIZE_ATTRIBUTE = "Size";
+
+// "normal" keeps the server's order (category sortOrder, then name) so the size
+// filter can be used without any reordering.
+type SortMode = "normal" | "desc" | "asc";
+
 export function ProductGrid({
   products,
   categories,
@@ -37,6 +45,8 @@ export function ProductGrid({
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sizeFilter, setSizeFilter] = useState<string | null>(null); // null = Normal
+  const [sortMode, setSortMode] = useState<SortMode>("normal");
 
   // variantId -> live state (seeded lazily from props on first interaction).
   const [vstate, setVstate] = useState<Record<string, VariantState>>({});
@@ -62,14 +72,82 @@ export function ProductGrid({
     return vstate[v.id]?.quantity ?? v.quantity;
   }
 
+  // Which rows are listed, and in what order, is computed from a snapshot of
+  // the quantities rather than from live vstate: re-sorting on every +/− would
+  // make rows jump out from under the user's finger, and with a size filter
+  // active a card would vanish the instant it hit zero. The snapshot is retaken
+  // whenever the filters, the sort mode, or the server data change — so order
+  // settles on the next chip tap or when the debounced router.refresh() lands.
+  const orderKey = [
+    categoryId ?? "",
+    query.trim().toLowerCase(),
+    sizeFilter ?? "",
+    sortMode,
+  ].join("|");
+  const [basis, setBasis] = useState({ key: orderKey, products, vstate });
+  if (basis.key !== orderKey || basis.products !== products) {
+    setBasis({ key: orderKey, products, vstate });
+  }
+  function settledQtyOf(v: Variant): number {
+    return basis.vstate[v.id]?.quantity ?? v.quantity;
+  }
+
+  // Distinct size labels across size-axis products. First-seen order inherits
+  // the server's `orderBy: sortOrder`, so chips read S, M, L, XL — not
+  // alphabetically.
+  const sizeOptions = useMemo(() => {
+    const seen: string[] = [];
+    for (const p of products) {
+      if (p.attributeLabel !== SIZE_ATTRIBUTE) continue;
+      for (const v of p.variants) {
+        if (!seen.includes(v.label)) seen.push(v.label);
+      }
+    }
+    return seen;
+  }, [products]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
       if (categoryId && p.category.id !== categoryId) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
+      if (sizeFilter) {
+        // A size chip means "still in stock in this size". Products on another
+        // attribute axis have no matching label and fall out here too.
+        const match = p.variants.find((v) => v.label === sizeFilter);
+        if (!match || settledQtyOf(match) <= 0) return false;
+      }
       return true;
     });
-  }, [products, categoryId, query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, categoryId, query, sizeFilter, basis]);
+
+  // Quantity a product is ranked by: the selected size's count when a size is
+  // active, otherwise its total across every size.
+  function sortQtyOf(p: Product): number {
+    if (sizeFilter) {
+      const match = p.variants.find((v) => v.label === sizeFilter);
+      return match ? settledQtyOf(match) : 0;
+    }
+    return p.variants.reduce((n, v) => n + settledQtyOf(v), 0);
+  }
+
+  const sorted = useMemo(() => {
+    if (sortMode === "normal") return filtered;
+    const ranked = filtered.map((p) => ({ p, qty: sortQtyOf(p) }));
+    // Nothing left of a product is not a "low quantity" worth surfacing, so
+    // ascending order drops the empties instead of leading with them.
+    const kept = sortMode === "asc" ? ranked.filter((r) => r.qty > 0) : ranked;
+    kept.sort((a, b) =>
+      a.qty !== b.qty
+        ? sortMode === "asc"
+          ? a.qty - b.qty
+          : b.qty - a.qty
+        : a.p.name.localeCompare(b.p.name),
+    );
+    return kept.map((r) => r.p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortMode, sizeFilter, basis]);
 
   // Sum of live quantities across the products currently shown. With no filter
   // this is the grand total of every piece in storage; when a category chip is
@@ -77,19 +155,26 @@ export function ProductGrid({
   // volume. Depends on vstate so it tracks +/- edits in real time.
   const totalUnits = useMemo(
     () =>
-      filtered.reduce(
+      sorted.reduce(
         (sum, p) => sum + p.variants.reduce((n, v) => n + qtyOf(v), 0),
         0,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filtered, vstate],
+    [sorted, vstate],
   );
 
-  const totalCaption = categoryId
-    ? `units in ${categories.find((c) => c.id === categoryId)?.name ?? "category"}`
-    : query.trim()
-      ? "units in view"
-      : "units in stock";
+  const totalCaption = useMemo(() => {
+    const scope = [
+      categoryId
+        ? (categories.find((c) => c.id === categoryId)?.name ?? "category")
+        : null,
+      sizeFilter,
+    ].filter(Boolean);
+    if (scope.length > 0) return `units in ${scope.join(" · ")}`;
+    // Low → High drops zero-stock products, so even with no chip active the
+    // total covers a subset of storage rather than all of it.
+    return query.trim() || sortMode === "asc" ? "units in view" : "units in stock";
+  }, [categoryId, categories, sizeFilter, query, sortMode]);
 
   async function adjust(v: Variant, delta: 1 | -1) {
     const current = qtyOf(v);
@@ -169,7 +254,7 @@ export function ProductGrid({
           className="w-full max-w-sm rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-cream placeholder:text-cream/35 outline-none transition focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
         />
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <FilterChip
             active={categoryId === null}
             onClick={() => setCategoryId(null)}
@@ -185,18 +270,64 @@ export function ProductGrid({
               {c.name}
             </FilterChip>
           ))}
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {sizeOptions.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wide text-cream/40">
+                  Size
+                </span>
+                <FilterChip
+                  compact
+                  active={sizeFilter === null}
+                  onClick={() => setSizeFilter(null)}
+                >
+                  Normal
+                </FilterChip>
+                {sizeOptions.map((s) => (
+                  <FilterChip
+                    key={s}
+                    compact
+                    active={sizeFilter === s}
+                    onClick={() => setSizeFilter(s)}
+                  >
+                    {s}
+                  </FilterChip>
+                ))}
+              </div>
+            ) : null}
+
+            <select
+              aria-label="Sort by quantity"
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              // Deliberately not `inputClass` — that string is `w-full`, and a
+              // `w-auto` override would depend on Tailwind's emitted order
+              // rather than on the order written here.
+              className="rounded-lg border border-edge bg-raised px-2.5 py-1 text-xs text-cream outline-none transition focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+            >
+              <option value="normal">Sort: Normal</option>
+              <option value="desc">Quantity: High → Low</option>
+              <option value="asc">Quantity: Low → High</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="rounded-xl border border-dashed border-edge px-4 py-12 text-center text-sm text-cream/50">
           No products match.
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((p) => {
+          {sorted.map((p) => {
             const expanded = expandedId === p.id;
             const total = p.variants.reduce((s, v) => s + qtyOf(v), 0);
+            // With a size active the list is ranked by this number, so show it
+            // alongside the all-sizes total that stays the headline.
+            const sizeMatch = sizeFilter
+              ? p.variants.find((v) => v.label === sizeFilter)
+              : undefined;
             return (
               <div
                 key={p.id}
@@ -230,6 +361,11 @@ export function ProductGrid({
                     <div className="text-[10px] uppercase tracking-wide text-cream/40">
                       in stock
                     </div>
+                    {sizeMatch ? (
+                      <div className="mt-0.5 text-[10px] tabular-nums text-gold/60">
+                        {qtyOf(sizeMatch)} in {sizeFilter}
+                      </div>
+                    ) : null}
                   </div>
                   <span
                     className={clsx(
@@ -247,12 +383,21 @@ export function ProductGrid({
                       {p.variants.map((v) => {
                         const st = vstate[v.id];
                         const qty = qtyOf(v);
+                        const highlighted = v.label === sizeFilter;
                         return (
                           <div
                             key={v.id}
-                            className="flex items-center gap-3 rounded-lg bg-ink/60 px-3 py-2"
+                            className={clsx(
+                              "flex items-center gap-3 rounded-lg bg-ink/60 px-3 py-2",
+                              highlighted && "ring-1 ring-inset ring-gold/40",
+                            )}
                           >
-                            <span className="w-16 shrink-0 text-sm font-medium text-cream/85">
+                            <span
+                              className={clsx(
+                                "w-16 shrink-0 text-sm font-medium",
+                                highlighted ? "text-gold" : "text-cream/85",
+                              )}
+                            >
                               {v.label}
                             </span>
 
@@ -344,21 +489,27 @@ function StockFlag({ qty }: { qty: number }) {
   return null;
 }
 
+// `compact` is used by the size chips so they read as a secondary control
+// rather than as more categories in the same row.
 function FilterChip({
   active,
   onClick,
+  compact,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  compact?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={clsx(
-        "rounded-full px-3 py-1 text-sm font-medium transition",
+        "rounded-full font-medium transition",
+        compact ? "px-2.5 py-0.5 text-xs" : "px-3 py-1 text-sm",
         active
           ? "bg-maroon text-cream"
           : "bg-surface text-cream/70 ring-1 ring-edge hover:text-cream hover:ring-gold/40",

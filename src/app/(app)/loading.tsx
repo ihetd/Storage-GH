@@ -4,12 +4,20 @@ import { Card, Skeleton } from "@/components/ui";
 export default function HomeLoading() {
   return (
     <div className="space-y-4">
-      {/* Search + category filter row */}
+      {/* Search box */}
+      <Skeleton className="h-10 w-full max-w-sm" />
+
+      {/* Category chips, with the size chips + sort control on the right */}
       <div className="flex flex-wrap items-center gap-2">
-        <Skeleton className="h-10 w-full max-w-xs" />
         <Skeleton className="h-8 w-20" />
         <Skeleton className="h-8 w-24" />
         <Skeleton className="h-8 w-16" />
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          <Skeleton className="h-5 w-14 rounded-full" />
+          <Skeleton className="h-5 w-8 rounded-full" />
+          <Skeleton className="h-5 w-8 rounded-full" />
+          <Skeleton className="ml-1 h-8 w-36" />
+        </div>
       </div>
 
       {/* Product rows */}
