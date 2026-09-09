@@ -71,48 +71,96 @@ export function unsellableSizes(matches: SizeMatch[]): SizeMatch[] {
   return matches.filter((m) => m.status === "missing-local");
 }
 
+// Colour names, both languages. This store's Shopify options are written in
+// English while its stock rows are named in Arabic, so a colour group and the
+// product that counts it rarely share a single character. Small closed
+// vocabulary, so a table beats anything cleverer.
+const COLOUR_SYNONYMS: string[][] = [
+  ["black", "أسود", "اسود"],
+  ["white", "أبيض", "ابيض"],
+  ["red", "أحمر", "احمر"],
+  ["pink", "وردي", "زهري"],
+  ["grey", "gray", "رمادي"],
+  ["blue", "أزرق", "ازرق"],
+  ["navy", "كحلي"],
+  ["green", "أخضر", "اخضر"],
+  ["beige", "بيج"],
+  ["brown", "بني"],
+  ["yellow", "أصفر", "اصفر"],
+  ["orange", "برتقالي"],
+  ["purple", "بنفسجي"],
+];
+
+function words(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\u0600-\u06ff ]+/g, " ")
+      .split(/\s+/)
+      .filter(Boolean),
+  );
+}
+
+/** Every spelling of a colour, in either language, including the one given. */
+function colourForms(colour: string): string[] {
+  const given = colour.trim().toLowerCase();
+  const row = COLOUR_SYNONYMS.find((forms) => forms.includes(given));
+  return row ? [...new Set([given, ...row])] : [given];
+}
+
+function namesColour(productName: string, colour: string): boolean {
+  const inName = words(productName);
+  return colourForms(colour).some((form) => inName.has(form));
+}
+
 /**
  * Best guess at which local product a Shopify group belongs to, used only to
- * preselect the dropdown.
+ * preselect the dropdown. It never links anything by itself — a human still
+ * presses save.
  *
- * Deliberately conservative on two counts. A wrong suggestion that a human
- * confirms is worse than no suggestion, so this wants a real word in common
- * rather than fuzzy closeness. And a colour group will only accept a product
- * whose name mentions that colour: without that rule every colour of one
- * Shopify product suggests the same stock row, which is a mapping the database
- * refuses — four dropdowns pre-filled with a combination that cannot be saved.
+ * Deliberately conservative. For a colour group the colour must be named, in
+ * either language: without that every colour of one Shopify product suggests
+ * the same stock row, which is a mapping the database refuses, so four
+ * dropdowns arrive pre-filled with something that cannot be saved. And when
+ * two products name the same colour the suggestion is withheld rather than
+ * guessed, because at that point there is genuinely nothing to choose between
+ * them.
  */
 export function suggestProduct(
   groupTitle: string,
   colour: string | null,
   products: { id: string; name: string }[],
 ): string | null {
-  const words = (s: string) =>
-    new Set(
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9\u0600-\u06ff ]+/g, " ")
-        .split(/\s+/)
-        .filter((w) => w.length > 2),
-    );
+  if (colour) {
+    const candidates = products.filter((p) => namesColour(p.name, colour));
+    if (candidates.length === 1) return candidates[0].id;
+    if (candidates.length === 0) return null;
+    // Several products claim the colour, so fall back to the title to separate
+    // them — "Light Pant Black" beats "Zip Hoodie Black" for a Light Pant group.
+    return bestByTitle(groupTitle, candidates);
+  }
+  return bestByTitle(groupTitle, products);
+}
 
-  const target = words(`${groupTitle} ${colour ?? ""}`);
+function bestByTitle(
+  groupTitle: string,
+  products: { id: string; name: string }[],
+): string | null {
+  const target = new Set([...words(groupTitle)].filter((w) => w.length > 2));
   if (target.size === 0) return null;
 
-  const colourWords = colour ? [...words(colour)] : [];
-
   let best: { id: string; score: number } | null = null;
+  let tied = false;
   for (const p of products) {
-    const name = words(p.name);
-
-    // A colour group needs the colour itself present, not just the product
-    // name. "Light Pant" alone is equally close to Black, Red, Pink and White,
-    // and suggesting it for all four helps nobody.
-    if (colourWords.length > 0 && !colourWords.every((w) => name.has(w))) continue;
-
     let score = 0;
-    for (const w of name) if (target.has(w)) score++;
-    if (score > 0 && (!best || score > best.score)) best = { id: p.id, score };
+    for (const w of words(p.name)) if (target.has(w)) score++;
+    if (score === 0) continue;
+    if (!best || score > best.score) {
+      best = { id: p.id, score };
+      tied = false;
+    } else if (score === best.score) {
+      tied = true;
+    }
   }
-  return best?.id ?? null;
+  return best && !tied ? best.id : null;
 }
