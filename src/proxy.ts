@@ -45,10 +45,17 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
-// Run on everything except Next internals, the auth API, static assets, and the
-// public PWA manifest (the OS fetches it unauthenticated to install the app).
+// Run on everything except Next internals, the auth API, static assets, the
+// public PWA manifest (the OS fetches it unauthenticated to install the app),
+// and the Shopify webhook.
+//
+// The webhook has to be excluded because Shopify cannot hold a session cookie —
+// this gate would 401 every delivery before the handler ever ran. It is not
+// left unprotected: the route verifies Shopify's HMAC over the raw body, which
+// is a stronger check than a cookie, and it is the only thing on /api that is
+// exempt.
 export const config = {
   matcher: [
-    "/((?!api/auth|manifest.webmanifest|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api/auth|api/shopify/webhook|manifest.webmanifest|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

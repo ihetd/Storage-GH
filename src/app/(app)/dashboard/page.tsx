@@ -13,6 +13,25 @@ const timeFormat = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
 });
 
+
+// Who to credit for a stock change. Shopify-driven adjustments have no human
+// author — userId is null for them — so the source names itself instead of the
+// row rendering a blank.
+const SOURCE_ACTORS: Record<string, string> = {
+  SHOPIFY_ORDER: "Shopify order",
+  SHOPIFY_CANCEL: "Shopify cancellation",
+  SHOPIFY_REFUND: "Shopify refund",
+  RECONCILE: "Stock reconcile",
+};
+
+function actorOf(a: {
+  user: { name: string | null; username: string } | null;
+  source: string;
+}): string {
+  if (a.user) return a.user.name || a.user.username;
+  return SOURCE_ACTORS[a.source] ?? "System";
+}
+
 export default async function DashboardOverview() {
   const [products, categories, templates, employees, recent, lowStock] =
     await Promise.all([
@@ -92,7 +111,7 @@ export default async function DashboardOverview() {
                 >
                   <div className="min-w-0">
                     <span className="text-cream/85">
-                      {a.user.name || a.user.username}
+                      {actorOf(a)}
                     </span>{" "}
                     <span
                       className={
