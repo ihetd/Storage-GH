@@ -6,7 +6,7 @@ import { fetchShopifyGroups } from "@/lib/shopify/products";
 import { applyShopifyLinks, type LinkMapping } from "@/lib/shopify/apply";
 import { ShopifyError } from "@/lib/shopify/client";
 import { prisma } from "@/lib/prisma";
-import { reconcileStock } from "@/lib/shopify/reconcile";
+import { reconcileStock, recordReconcileRun } from "@/lib/shopify/reconcile";
 import { setShopifyQuantity } from "@/lib/shopify/push";
 import type { ActionResult, FormState } from "./types";
 
@@ -99,6 +99,29 @@ export async function matchShopifyToStock(): Promise<ActionResult> {
     });
 
     if (failures.length > 0) return { error: failures.join("; ") };
+  } catch (e) {
+    if (e instanceof ShopifyError) return { error: e.message };
+    throw e;
+  }
+
+  revalidate();
+  return {};
+}
+
+/**
+ * Re-run the drift check now instead of waiting for tonight.
+ *
+ * The dashboard reports the last recorded run, so a warning outlives whatever
+ * caused it until the next nightly pass — including when the cause was fixed
+ * somewhere else entirely, like directly in the Shopify admin. Without a way to
+ * ask again, a stale warning is indistinguishable from a live one, and a
+ * warning nobody believes is worse than none.
+ */
+export async function recheckShopifyDrift(): Promise<ActionResult> {
+  await requireRole(["ADMIN"]);
+
+  try {
+    await recordReconcileRun();
   } catch (e) {
     if (e instanceof ShopifyError) return { error: e.message };
     throw e;
