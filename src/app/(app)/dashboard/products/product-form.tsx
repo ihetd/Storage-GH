@@ -45,10 +45,13 @@ export function ProductForm({
   categories,
   templates,
   product,
+  scheduled = false,
 }: {
   categories: Category[];
   templates: Template[];
   product?: ExistingProduct;
+  /** Create it on the Scheduled list instead of in stock. */
+  scheduled?: boolean;
 }) {
   const isEdit = !!product;
   const action = isEdit ? updateProduct : createProduct;
@@ -105,6 +108,7 @@ export function ProductForm({
 
   return (
     <form action={run} className="space-y-6">
+      {scheduled && <input type="hidden" name="scheduled" value="true" />}
       {isEdit ? <input type="hidden" name="id" value={product!.id} /> : null}
       <input type="hidden" name="attributeLabel" value={attributeLabel} />
       <input type="hidden" name="variants" value={serializedVariants} />

@@ -28,6 +28,9 @@ export default async function ShopifyPage() {
   }
 
   const products = await prisma.product.findMany({
+    // Nothing that has not arrived can be sold, so it has no business being
+    // linked to a Shopify product or pushed there as available.
+    where: { scheduled: false },
     orderBy: [{ name: "asc" }],
     select: {
       id: true,

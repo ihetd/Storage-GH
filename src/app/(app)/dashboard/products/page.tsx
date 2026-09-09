@@ -8,6 +8,7 @@ export const metadata = { title: "Products · Dashboard" };
 
 export default async function ProductsPage() {
   const products = await prisma.product.findMany({
+    where: { scheduled: false },
     orderBy: { createdAt: "desc" },
     include: {
       category: true,

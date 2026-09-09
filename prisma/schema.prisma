@@ -44,7 +44,6 @@ model User {
   updatedAt    DateTime @updatedAt
 
   adjustments StockAdjustment[]
-  scheduled   ScheduledItem[]
 }
 
 model Category {
@@ -70,15 +69,23 @@ model VariantTemplate {
 }
 
 model Product {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   name              String
   imageUrl          String?
   imageKey          String?
-  attributeLabel    String   @default("Size")
+  attributeLabel    String  @default("Size")
   categoryId        String
   variantTemplateId String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+
+  // A scheduled product is one that has been ordered but has not arrived. It is
+  // a normal product in every respect except that it is hidden from the stock
+  // screens and from everyone but an admin, so counts, low-stock warnings and
+  // the Shopify link only ever describe things actually on the shelf. Moving it
+  // to stock is a single flag, which is why this is a flag rather than a
+  // separate table of pending things to copy across later.
+  scheduled Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Shopify keeps colours as one product with a colour option; this app keeps
   // one attribute axis per product. So the link is per product *and* colour:
@@ -114,7 +121,6 @@ model ProductVariant {
 
   product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
   adjustments StockAdjustment[]
-  scheduled   ScheduledItem[]
 
   @@unique([productId, label])
   @@index([productId])
@@ -188,34 +194,4 @@ model ReconcileRun {
   error   String?
 
   @@index([ranAt])
-}
-
-// Stock that has been ordered from a supplier but has not arrived.
-//
-// Deliberately not part of the count. A number that mixes what is on the shelf
-// with what is on a lorry is a number nobody can act on, and it would be pushed
-// to Shopify as sellable. Receiving is the moment it becomes stock, and that
-// goes through the same adjustment path as everything else.
-model ScheduledItem {
-  id               String    @id @default(cuid())
-  productVariantId String
-  quantity         Int
-  /**
-   * When it is due. Optional — often nobody knows yet.
-   */
-  expectedAt       DateTime?
-  note             String?
-  createdById      String?
-  /**
-   * Null until it arrives; set when the stock is taken in.
-   */
-  receivedAt       DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
-  createdBy      User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
-
-  @@index([receivedAt])
-  @@index([productVariantId])
 }

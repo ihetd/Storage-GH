@@ -37,7 +37,7 @@ function actorOf(a: {
 export default async function DashboardOverview() {
   const [products, categories, templates, employees, recent, lowStock, lastCheck] =
     await Promise.all([
-      prisma.product.count(),
+      prisma.product.count({ where: { scheduled: false } }),
       prisma.category.count(),
       prisma.variantTemplate.count(),
       prisma.user.count(),
@@ -52,7 +52,9 @@ export default async function DashboardOverview() {
         },
       }),
       prisma.productVariant.findMany({
-        where: { quantity: { lte: LOW_STOCK_AT } },
+        // A scheduled product is nought of everything by definition; listing it
+        // as low stock would bury the sizes that genuinely need reordering.
+        where: { quantity: { lte: LOW_STOCK_AT }, product: { scheduled: false } },
         orderBy: [{ quantity: "asc" }, { label: "asc" }],
         take: 8,
         select: {
