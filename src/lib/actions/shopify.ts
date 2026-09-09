@@ -35,6 +35,14 @@ export async function saveShopifyLinks(formData: FormData): Promise<FormState> {
     const groups = await fetchShopifyGroups();
     const result = await applyShopifyLinks(mapping, groups);
     if (!result.ok) return { error: result.error };
+
+    // Linking creates the mapping; it does not move any stock. Two systems that
+    // have been counting separately are almost never already equal, so a fresh
+    // link usually starts out in disagreement — and nothing said so until the
+    // next nightly check, which made linking look like it had silently failed.
+    // Checking straight away puts the difference and the button to close it on
+    // the dashboard while the person is still thinking about this product.
+    await recordReconcileRun();
   } catch (e) {
     if (e instanceof ShopifyError) return { error: e.message };
     throw e;

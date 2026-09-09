@@ -168,7 +168,10 @@ export function ShopifyLinkForm({
           {pending ? "Saving…" : "Save links"}
         </button>
         {saved && !dirty && (
-          <span className="text-sm text-emerald-400">Saved.</span>
+          <span className="text-sm text-emerald-400">
+            Saved. Linking doesn&apos;t move any stock — check the dashboard for
+            any counts that now disagree.
+          </span>
         )}
         {dirty && !pending && (
           <span className="text-sm text-cream/50">Unsaved changes.</span>
