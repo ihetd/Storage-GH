@@ -73,9 +73,14 @@ export function unsellableSizes(matches: SizeMatch[]): SizeMatch[] {
 
 /**
  * Best guess at which local product a Shopify group belongs to, used only to
- * preselect the dropdown. Deliberately conservative: a wrong suggestion that a
- * human confirms is worse than no suggestion, so this requires a real word in
- * common rather than fuzzy closeness.
+ * preselect the dropdown.
+ *
+ * Deliberately conservative on two counts. A wrong suggestion that a human
+ * confirms is worse than no suggestion, so this wants a real word in common
+ * rather than fuzzy closeness. And a colour group will only accept a product
+ * whose name mentions that colour: without that rule every colour of one
+ * Shopify product suggests the same stock row, which is a mapping the database
+ * refuses — four dropdowns pre-filled with a combination that cannot be saved.
  */
 export function suggestProduct(
   groupTitle: string,
@@ -86,7 +91,7 @@ export function suggestProduct(
     new Set(
       s
         .toLowerCase()
-        .replace(/[^a-z0-9؀-ۿ ]+/g, " ")
+        .replace(/[^a-z0-9\u0600-\u06ff ]+/g, " ")
         .split(/\s+/)
         .filter((w) => w.length > 2),
     );
@@ -94,10 +99,19 @@ export function suggestProduct(
   const target = words(`${groupTitle} ${colour ?? ""}`);
   if (target.size === 0) return null;
 
+  const colourWords = colour ? [...words(colour)] : [];
+
   let best: { id: string; score: number } | null = null;
   for (const p of products) {
+    const name = words(p.name);
+
+    // A colour group needs the colour itself present, not just the product
+    // name. "Light Pant" alone is equally close to Black, Red, Pink and White,
+    // and suggesting it for all four helps nobody.
+    if (colourWords.length > 0 && !colourWords.every((w) => name.has(w))) continue;
+
     let score = 0;
-    for (const w of words(p.name)) if (target.has(w)) score++;
+    for (const w of name) if (target.has(w)) score++;
     if (score > 0 && (!best || score > best.score)) best = { id: p.id, score };
   }
   return best?.id ?? null;
