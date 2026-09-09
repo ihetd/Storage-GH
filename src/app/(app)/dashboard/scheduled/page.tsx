@@ -1,161 +1,99 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
-import { Card, EmptyState, PageHeader } from "@/components/ui";
-import {
-  CancelScheduledButton,
-  ReceiveButton,
-  ScheduledCreateForm,
-  type VariantOption,
-} from "./scheduled-forms";
+import { btnPrimary, Card, EmptyState, PageHeader } from "@/components/ui";
+import { DeleteButton } from "@/components/delete-button";
+import { deleteProduct } from "@/lib/actions/products";
+import { ReceiveProductButton } from "./receive-button";
 
 export const metadata = { title: "Scheduled · Dashboard" };
 
-function dueLabel(expectedAt: Date | null): { text: string; overdue: boolean } {
-  if (!expectedAt) return { text: "no date", overdue: false };
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return {
-    text: expectedAt.toLocaleDateString(),
-    overdue: expectedAt < today,
-  };
-}
-
 export default async function ScheduledPage() {
+  // Admin only, and not merely hidden from the tab bar: this is the whole point
+  // of the section. Staff should not see stock that cannot be sold yet.
   await requireRole(["ADMIN"]);
 
-  const [pending, received, variants] = await Promise.all([
-    prisma.scheduledItem.findMany({
-      where: { receivedAt: null },
-      // Undated items last: a delivery with a date is one you can plan around.
-      orderBy: [{ expectedAt: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
-      select: {
-        id: true,
-        quantity: true,
-        expectedAt: true,
-        note: true,
-        productVariant: {
-          select: { label: true, quantity: true, product: { select: { name: true } } },
-        },
-      },
-    }),
-    prisma.scheduledItem.findMany({
-      where: { receivedAt: { not: null } },
-      orderBy: { receivedAt: "desc" },
-      take: 10,
-      select: {
-        id: true,
-        quantity: true,
-        receivedAt: true,
-        productVariant: {
-          select: { label: true, product: { select: { name: true } } },
-        },
-      },
-    }),
-    prisma.productVariant.findMany({
-      orderBy: [{ product: { name: "asc" } }, { sortOrder: "asc" }],
-      select: { id: true, label: true, product: { select: { name: true } } },
-    }),
-  ]);
+  const products = await prisma.product.findMany({
+    where: { scheduled: true },
+    orderBy: { createdAt: "desc" },
+    include: {
+      category: { select: { name: true } },
+      variants: { orderBy: { sortOrder: "asc" }, select: { label: true, quantity: true } },
+    },
+  });
 
-  const options: VariantOption[] = variants.map((v) => ({
-    id: v.id,
-    product: v.product.name,
-    label: v.label,
-  }));
-
-  const incoming = pending.reduce((n, p) => n + p.quantity, 0);
+  const pieces = products.reduce(
+    (n, p) => n + p.variants.reduce((m, v) => m + v.quantity, 0),
+    0,
+  );
 
   return (
     <div>
       <PageHeader
         title="Scheduled"
-        description="Stock ordered but not arrived. It is not counted anywhere until you mark it received."
+        description="Products you have ordered but not received. Only you can see them — they stay out of the stock screens, and out of Shopify, until you move them in."
+        actions={
+          <Link href="/dashboard/scheduled/new" className={btnPrimary}>
+            + New scheduled product
+          </Link>
+        }
       />
 
-      <Card className="mb-6">
-        <ScheduledCreateForm options={options} />
-      </Card>
-
-      {pending.length === 0 ? (
+      {products.length === 0 ? (
         <EmptyState>
-          Nothing on order. Add a delivery above and it will wait here until it arrives.
+          Nothing scheduled. Add a product here when you order it, with the sizes and
+          quantities you are expecting, and move it into stock when it arrives.
         </EmptyState>
       ) : (
-        <Card className="p-0">
-          <div className="flex items-center justify-between px-4 pt-4">
-            <h2 className="font-display text-sm font-semibold tracking-wide text-gold">
-              On the way
-            </h2>
-            <span className="text-xs text-cream/45">
-              {incoming} {incoming === 1 ? "piece" : "pieces"} across {pending.length}{" "}
-              {pending.length === 1 ? "delivery" : "deliveries"}
-            </span>
-          </div>
-          <table className="mt-3 w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-cream/45">
-                <th className="px-4 py-2 font-medium">Product</th>
-                <th className="px-4 py-2 font-medium">Coming</th>
-                <th className="px-4 py-2 font-medium">In stock now</th>
-                <th className="px-4 py-2 font-medium">Expected</th>
-                <th className="px-4 py-2 font-medium">Note</th>
-                <th className="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {pending.map((item) => {
-                const due = dueLabel(item.expectedAt);
-                return (
-                  <tr key={item.id} className="border-t border-edge/60">
-                    <td className="px-4 py-2 text-cream/85">
-                      {item.productVariant.product.name}
-                      <span className="text-cream/50"> · {item.productVariant.label}</span>
-                    </td>
-                    <td className="px-4 py-2 text-cream/85">+{item.quantity}</td>
-                    <td className="px-4 py-2 text-cream/50">{item.productVariant.quantity}</td>
-                    <td
-                      className={
-                        due.overdue ? "px-4 py-2 text-amber-300" : "px-4 py-2 text-cream/60"
-                      }
-                    >
-                      {due.text}
-                      {due.overdue && " · late"}
-                    </td>
-                    <td className="px-4 py-2 text-cream/50">{item.note ?? ""}</td>
-                    <td className="px-4 py-2">
-                      <span className="flex flex-wrap items-center justify-end gap-2">
-                        <ReceiveButton id={item.id} quantity={item.quantity} />
-                        <CancelScheduledButton id={item.id} />
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Card>
-      )}
+        <>
+          <p className="mb-3 text-xs text-cream/45">
+            {products.length} {products.length === 1 ? "product" : "products"} ·{" "}
+            {pieces} {pieces === 1 ? "piece" : "pieces"} expected
+          </p>
 
-      {received.length > 0 && (
-        <Card className="mt-6">
-          <h2 className="font-display text-sm font-semibold tracking-wide text-gold">
-            Recently received
-          </h2>
-          <ul className="mt-3 divide-y divide-edge/60 text-sm">
-            {received.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="text-cream/75">
-                  {item.productVariant.product.name}
-                  <span className="text-cream/45"> · {item.productVariant.label}</span>
-                  <span className="text-emerald-400"> +{item.quantity}</span>
-                </span>
-                <span className="text-xs text-cream/40">
-                  {item.receivedAt?.toLocaleDateString()}
-                </span>
-              </li>
+          <div className="space-y-4">
+            {products.map((product) => (
+              <Card key={product.id}>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold text-cream">{product.name}</h2>
+                    <p className="mt-1 text-xs text-cream/50">
+                      {product.category.name} · {product.variants.length}{" "}
+                      {product.variants.length === 1 ? "size" : "sizes"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <ReceiveProductButton id={product.id} name={product.name} />
+                    <Link
+                      href={`/dashboard/products/${product.id}/edit`}
+                      className="rounded-md px-2.5 py-1 text-xs font-medium text-cream/70 transition hover:bg-raised"
+                    >
+                      Edit
+                    </Link>
+                    <DeleteButton
+                      action={deleteProduct.bind(null, product.id)}
+                      confirmLabel="Delete this scheduled product?"
+                    />
+                  </div>
+                </div>
+
+                {product.variants.length > 0 && (
+                  <ul className="mt-4 flex flex-wrap gap-2 border-t border-edge/60 pt-3">
+                    {product.variants.map((v) => (
+                      <li
+                        key={v.label}
+                        className="rounded-md border border-edge px-2 py-1 text-xs text-cream/70"
+                      >
+                        {v.label}
+                        <span className="text-cream/40"> · {v.quantity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
             ))}
-          </ul>
-        </Card>
+          </div>
+        </>
       )}
     </div>
   );

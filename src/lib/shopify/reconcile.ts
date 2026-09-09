@@ -30,7 +30,7 @@ export type ReconcileResult = {
 export async function reconcileStock(): Promise<ReconcileResult> {
   const [linked, groups] = await Promise.all([
     prisma.productVariant.findMany({
-      where: { shopifyInventoryItemId: { not: null } },
+      where: { shopifyInventoryItemId: { not: null }, product: { scheduled: false } },
       select: {
         label: true,
         quantity: true,

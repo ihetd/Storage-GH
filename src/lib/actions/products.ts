@@ -66,6 +66,7 @@ function parse(formData: FormData): { data?: ParsedInput; error?: string } {
 }
 
 function revalidate() {
+  revalidatePath("/dashboard/scheduled");
   revalidatePath("/dashboard/products");
   revalidatePath("/");
 }
@@ -78,6 +79,10 @@ export async function createProduct(
   const { data, error } = parse(formData);
   if (!data) return { error };
 
+  // Set by the Scheduled tab's form. A scheduled product is ordinary in every
+  // way except that it stays out of the stock screens until it arrives.
+  const scheduled = formData.get("scheduled") === "true";
+
   try {
     await prisma.product.create({
       data: {
@@ -87,6 +92,7 @@ export async function createProduct(
         variantTemplateId: data.variantTemplateId || null,
         imageUrl: data.imageUrl || null,
         imageKey: data.imageKey || null,
+        scheduled,
         variants: {
           create: data.variants.map((v, i) => ({
             label: v.label,
@@ -104,7 +110,7 @@ export async function createProduct(
   }
 
   revalidate();
-  redirect("/dashboard/products");
+  redirect(scheduled ? "/dashboard/scheduled" : "/dashboard/products");
 }
 
 export async function updateProduct(
@@ -234,6 +240,38 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
   });
   // Best-effort R2 cleanup after the response — don't make the UI wait on it.
   after(() => deleteFromR2(deleted.imageKey));
+  revalidate();
+  return {};
+}
+
+/**
+ * Move a scheduled product into stock.
+ *
+ * The delivery has arrived, so the product stops being hidden and starts
+ * counting. Its quantities were entered when it was scheduled and are already
+ * right, so nothing about the numbers changes here — which is why this writes
+ * no adjustment. The stock did not move; it became visible.
+ *
+ * Nothing is pushed to Shopify either: an unlinked product has nowhere to push
+ * to, and linking it is the deliberate next step on the Shopify tab.
+ */
+export async function receiveScheduledProduct(id: string): Promise<ActionResult> {
+  await requireRole(["ADMIN"]);
+
+  const updated = await prisma.product.updateMany({
+    where: { id, scheduled: true },
+    data: { scheduled: false },
+  });
+  if (updated.count === 0) return { error: "That product is already in stock." };
+
+  revalidate();
+  return {};
+}
+
+/** Put a product back on the scheduled list, out of the stock screens. */
+export async function unreceiveProduct(id: string): Promise<ActionResult> {
+  await requireRole(["ADMIN"]);
+  await prisma.product.updateMany({ where: { id, scheduled: false }, data: { scheduled: true } });
   revalidate();
   return {};
 }

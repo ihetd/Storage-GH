@@ -74,7 +74,7 @@ export async function matchShopifyToStock(): Promise<ActionResult> {
     // Re-read the ids now rather than trusting anything the browser sent: the
     // client says "fix the drift", never which rows or what to set them to.
     const variants = await prisma.productVariant.findMany({
-      where: { shopifyInventoryItemId: { not: null } },
+      where: { shopifyInventoryItemId: { not: null }, product: { scheduled: false } },
       select: {
         quantity: true,
         label: true,

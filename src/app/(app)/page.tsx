@@ -10,6 +10,9 @@ export default async function HomePage() {
 
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
+      // Scheduled products have been ordered, not received. Showing them here
+      // would put stock on the screen that is not in the room.
+      where: { scheduled: false },
       orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
       include: {
         category: { select: { id: true, name: true } },
