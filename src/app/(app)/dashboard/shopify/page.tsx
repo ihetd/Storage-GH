@@ -96,17 +96,24 @@ export default async function ShopifyPage() {
         <Card className="mb-6 border-red-900/60">
           <h2 className="text-sm font-semibold text-red-400">Needs attention</h2>
           <ul className="mt-2 space-y-1 text-sm text-cream/75">
+            {/*
+              Whole sentences rather than words interleaved with expressions.
+              JSX drops the space between an expression and the text after it
+              when the line wraps, which read as "for themwon't change" — the
+              kind of thing that only shows up once it is on screen.
+            */}
             {unlinked > 0 && (
               <li>
-                {unlinked} Shopify {unlinked === 1 ? "product is" : "products are"} not
-                linked. Orders for {unlinked === 1 ? "it" : "them"} won&apos;t change any
-                stock count.
+                {unlinked === 1
+                  ? "1 Shopify product is not linked. Orders for it won\u2019t change any stock count."
+                  : `${unlinked} Shopify products are not linked. Orders for them won\u2019t change any stock count.`}
               </li>
             )}
             {unsellable > 0 && (
               <li>
-                {unsellable} {unsellable === 1 ? "size is" : "sizes are"} sold on Shopify
-                with nothing here to count. Customers can buy past the stock you have.
+                {unsellable === 1
+                  ? "1 size is sold on Shopify with nothing here to count. Customers can buy past the stock you have."
+                  : `${unsellable} sizes are sold on Shopify with nothing here to count. Customers can buy past the stock you have.`}
               </li>
             )}
           </ul>
