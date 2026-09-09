@@ -161,3 +161,84 @@ export async function pushAdjustmentToShopify(adjustmentId: string): Promise<Pus
 export async function pushAdjustmentsToShopify(ids: string[]): Promise<void> {
   for (const id of ids) await pushAdjustmentToShopify(id);
 }
+
+const SET_MUTATION = `
+  mutation SetStock($input: InventorySetQuantitiesInput!, $key: String!) {
+    inventorySetQuantities(input: $input) @idempotent(key: $key) {
+      inventoryAdjustmentGroup { createdAt }
+      userErrors { field message }
+    }
+  }
+`;
+
+type SetResponse = {
+  inventorySetQuantities: {
+    inventoryAdjustmentGroup: { createdAt: string } | null;
+    userErrors: { field: string[] | null; message: string }[];
+  };
+};
+
+/**
+ * Set Shopify's count to an exact number, rather than moving it by a delta.
+ *
+ * This exists only to close a gap the deltas cannot. A delta keeps the two
+ * systems in step but preserves any difference already between them: take one
+ * off each and they are still one apart. Something has to be able to say "make
+ * it this number", and that is a different Shopify operation.
+ *
+ * Reserved for a human deciding a drift, never used by the automatic sync,
+ * because an absolute write is exactly what loses a sale that lands in the same
+ * moment. changeFromQuantity guards against that as far as it can — if the
+ * count moved since we read it, this is refused rather than overwriting.
+ */
+export async function setShopifyQuantity(
+  inventoryItemId: string,
+  quantity: number,
+): Promise<PushOutcome> {
+  const config = getShopifyConfig();
+  if (!config) return { status: "skipped", reason: "Shopify not configured" };
+
+  try {
+    const item = inventoryItemGid(inventoryItemId);
+    const location = locationGid(config.locationId);
+
+    const current = await shopifyGraphQL<ReadResponse>(READ_QUERY, { item, location });
+    const available = current.inventoryItem?.inventoryLevel?.quantities?.[0]?.quantity;
+    if (available === undefined) {
+      return { status: "failed", reason: "Shopify reports no stock level at this location" };
+    }
+    if (available === quantity) return { status: "skipped", reason: "already matches" };
+
+    const data = await shopifyGraphQL<SetResponse>(SET_MUTATION, {
+      // Derived from the state rather than the clock: the same correction
+      // attempted twice from the same starting point is one logical change and
+      // is applied once, while a genuine second correction — different before
+      // or after — gets its own key and goes through.
+      key: `fix:${inventoryItemId}:${available}:${quantity}`,
+      input: {
+        name: "available",
+        reason: "correction",
+        quantities: [
+          {
+            inventoryItemId: item,
+            locationId: location,
+            quantity,
+            changeFromQuantity: available,
+          },
+        ],
+      },
+    });
+
+    const errors = data.inventorySetQuantities.userErrors;
+    if (errors.length > 0) {
+      const reason = errors.map((e) => e.message).join("; ");
+      console.error(`[shopify] set ${inventoryItemId} to ${quantity} rejected: ${reason}`);
+      return { status: "failed", reason };
+    }
+    return { status: "pushed" };
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : "unknown error";
+    console.error(`[shopify] set ${inventoryItemId} failed: ${reason}`);
+    return { status: "failed", reason };
+  }
+}
