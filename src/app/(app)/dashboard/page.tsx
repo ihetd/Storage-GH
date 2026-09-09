@@ -94,6 +94,19 @@ export default async function DashboardOverview() {
         ))}
       </div>
 
+      {/*
+        A clean check says so, quietly. Reporting only problems would leave no
+        way to tell "everything agrees" from "the job never ran", and a safety
+        net nobody can see working is one nobody trusts.
+      */}
+      {lastCheck && !lastCheck.error && lastCheck.drifted === 0 && lastCheck.missing === 0 && (
+        <p className="mt-6 text-xs text-cream/40">
+          Shopify and stock agreed on all {lastCheck.checked} linked{" "}
+          {lastCheck.checked === 1 ? "size" : "sizes"} when checked{" "}
+          {lastCheck.ranAt.toLocaleString()}.
+        </p>
+      )}
+
       {lastCheck && (lastCheck.drifted > 0 || lastCheck.missing > 0 || lastCheck.error) && (
         <Card className="mt-6 border-red-900/60">
           <h2 className="text-sm font-semibold text-red-400">
