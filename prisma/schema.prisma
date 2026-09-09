@@ -150,3 +150,30 @@ model ShopifyToken {
   expiresAt   DateTime
   updatedAt   DateTime @updatedAt
 }
+
+// Result of one nightly comparison between this app and Shopify.
+//
+// The sync is event-driven, and events can be lost: Shopify retries a failed
+// webhook for two days and then gives up, and a push can fail while its local
+// change stands. Nothing in that path notices, so the two counts would simply
+// disagree in silence. This is the thing that notices.
+//
+// Read-only by design. Vercel says cron delivery is best effort and may fire
+// twice, so a job that only looks and records is safe to run any number of
+// times.
+model ReconcileRun {
+  id       String   @id @default(cuid())
+  ranAt    DateTime @default(now())
+  /** Linked variants compared. */
+  checked  Int
+  /** Of those, how many disagreed. */
+  drifted  Int
+  /** Linked here but no longer present in Shopify — a deleted or re-made variant. */
+  missing  Int
+  /** The disagreements themselves, for the dashboard to list. */
+  details  Json?
+  /** Set when the run itself failed, so a silent absence is distinguishable. */
+  error    String?
+
+  @@index([ranAt])
+}

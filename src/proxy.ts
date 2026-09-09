@@ -47,15 +47,16 @@ export default auth((req) => {
 
 // Run on everything except Next internals, the auth API, static assets, the
 // public PWA manifest (the OS fetches it unauthenticated to install the app),
-// and the Shopify webhook.
+// the Shopify webhook, and the nightly reconcile cron.
 //
 // The webhook has to be excluded because Shopify cannot hold a session cookie —
 // this gate would 401 every delivery before the handler ever ran. It is not
 // left unprotected: the route verifies Shopify's HMAC over the raw body, which
-// is a stronger check than a cookie, and it is the only thing on /api that is
-// exempt.
+// is a stronger check than a cookie. The reconcile job is exempt for the same
+// reason — Vercel's cron has no session either — and carries CRON_SECRET as a
+// bearer token instead. Those two are the only exemptions on /api.
 export const config = {
   matcher: [
-    "/((?!api/auth|api/shopify/webhook|manifest.webmanifest|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api/auth|api/shopify/webhook|api/shopify/reconcile|manifest.webmanifest|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

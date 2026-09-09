@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import type { Drift } from "@/lib/shopify/reconcile";
 import { Card, PageHeader } from "@/components/ui";
 
 export const metadata = { title: "Dashboard" };
@@ -33,7 +34,7 @@ function actorOf(a: {
 }
 
 export default async function DashboardOverview() {
-  const [products, categories, templates, employees, recent, lowStock] =
+  const [products, categories, templates, employees, recent, lowStock, lastCheck] =
     await Promise.all([
       prisma.product.count(),
       prisma.category.count(),
@@ -60,6 +61,7 @@ export default async function DashboardOverview() {
           product: { select: { id: true, name: true } },
         },
       }),
+      prisma.reconcileRun.findFirst({ orderBy: { ranAt: "desc" } }),
     ]);
 
   const cards = [
@@ -91,6 +93,39 @@ export default async function DashboardOverview() {
           </Link>
         ))}
       </div>
+
+      {lastCheck && (lastCheck.drifted > 0 || lastCheck.missing > 0 || lastCheck.error) && (
+        <Card className="mt-6 border-red-900/60">
+          <h2 className="text-sm font-semibold text-red-400">
+            Shopify and stock disagree
+          </h2>
+          {lastCheck.error ? (
+            <p className="mt-2 text-sm text-cream/75">
+              The nightly check could not run: {lastCheck.error}
+            </p>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-cream/75">
+                {lastCheck.drifted > 0
+                  ? `${lastCheck.drifted} of ${lastCheck.checked} linked sizes hold a different number here than on Shopify. A sync message was probably lost — decide which count is right and set it here.`
+                  : `${lastCheck.missing} linked ${lastCheck.missing === 1 ? "size no longer exists" : "sizes no longer exist"} on Shopify. Re-link them on the Shopify tab.`}
+              </p>
+              {Array.isArray(lastCheck.details) && lastCheck.details.length > 0 && (
+                <ul className="mt-3 space-y-1 text-sm text-cream/60">
+                  {(lastCheck.details as unknown as Drift[]).slice(0, 8).map((d, i) => (
+                    <li key={i}>
+                      {d.product} · {d.label} — here {d.local}, Shopify {d.shopify}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+          <p className="mt-3 text-xs text-cream/40">
+            Checked {lastCheck.ranAt.toLocaleString()}
+          </p>
+        </Card>
+      )}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>
