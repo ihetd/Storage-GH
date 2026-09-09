@@ -20,12 +20,16 @@ export const btnDanger =
 export function Card({
   children,
   className,
+  hidden,
 }: {
   children: React.ReactNode;
   className?: string;
+  /** Hide without unmounting, so any form fields inside still submit. */
+  hidden?: boolean;
 }) {
   return (
     <div
+      hidden={hidden}
       className={clsx(
         "rounded-2xl border border-edge bg-surface p-5 shadow-lg shadow-black/30",
         className,

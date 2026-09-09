@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { btnPrimary, Card, inputClass } from "@/components/ui";
+import { ProductCombobox } from "./product-combobox";
 import { useFormAction } from "@/lib/use-form-action";
 import { saveShopifyLinks } from "@/lib/actions/shopify";
 
@@ -37,6 +38,23 @@ export function ShopifyLinkForm({
     ),
   );
   const [saved, setSaved] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  // Which cards to show. Cards are hidden rather than unmounted: saving
+  // replaces the entire mapping, so a filtered-out card whose hidden input had
+  // been removed from the form would be read as "unlink this" and quietly drop
+  // a link the user never touched.
+  const visible = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return null;
+    return new Set(
+      groups
+        .filter((g) => `${g.title} ${g.colour ?? ""}`.toLowerCase().includes(q))
+        .map((g) => g.key),
+    );
+  }, [groups, filter]);
+
+  const hiddenCount = visible ? groups.length - visible.size : 0;
 
   const { run, pending, error } = useFormAction(saveShopifyLinks, () => setSaved(true));
 
@@ -49,9 +67,27 @@ export function ShopifyLinkForm({
         run(formData);
       }}
     >
+      <div className="mb-4">
+        <label className="block">
+          <span className="sr-only">Search Shopify products</span>
+          <input
+            type="search"
+            className={inputClass}
+            placeholder="Search Shopify products…"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+        </label>
+        {hiddenCount > 0 && (
+          <p className="mt-1 text-xs text-cream/45">
+            {hiddenCount} hidden by the search. They keep their links when you save.
+          </p>
+        )}
+      </div>
+
       <div className="space-y-4">
         {groups.map((g) => (
-          <Card key={g.key}>
+          <Card key={g.key} hidden={visible ? !visible.has(g.key) : false}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-cream">
@@ -69,29 +105,20 @@ export function ShopifyLinkForm({
                 </p>
               </div>
 
-              <label className="w-full sm:w-80">
-                <span className="sr-only">Stock item for {g.title}</span>
-                <select
+              <div className="w-full sm:w-80">
+                <ProductCombobox
                   name={`link:${g.key}`}
-                  className={inputClass}
+                  options={products}
                   value={choices[g.key] ?? ""}
-                  onChange={(e) =>
-                    setChoices((c) => ({ ...c, [g.key]: e.target.value }))
-                  }
-                >
-                  <option value="">— not linked —</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(id) => setChoices((c) => ({ ...c, [g.key]: id }))}
+                  label={`Stock item for ${g.title}${g.colour ? ` ${g.colour}` : ""}`}
+                />
                 {!g.selectedProductId && g.suggestedProductId && (
                   <span className="mt-1 block text-xs text-gold/80">
                     Suggested match — check it, then save.
                   </span>
                 )}
-              </label>
+              </div>
             </div>
 
             {g.sizes.length > 0 && (
