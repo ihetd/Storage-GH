@@ -20,6 +20,19 @@ enum Role {
   VIEWER
 }
 
+// Where a stock change came from. The distinction is load-bearing, not
+// decorative: MANUAL and ADMIN_EDIT originate here and are pushed up to
+// Shopify, while the SHOPIFY_* ones arrived from Shopify and must never be
+// echoed back or the two systems chase each other.
+enum AdjustmentSource {
+  MANUAL
+  ADMIN_EDIT
+  SHOPIFY_ORDER
+  SHOPIFY_CANCEL
+  SHOPIFY_REFUND
+  RECONCILE
+}
+
 model User {
   id           String   @id @default(cuid())
   username     String   @unique
@@ -34,11 +47,11 @@ model User {
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  sortOrder Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   products Product[]
 }
@@ -66,10 +79,18 @@ model Product {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  // Shopify keeps colours as one product with a colour option; this app keeps
+  // one attribute axis per product. So the link is per product *and* colour:
+  // "Light Pant / Black" here points at Shopify's Light Pant, option "Black".
+  // shopifyOptionValue is null for products that have no second axis.
+  shopifyProductId   String?
+  shopifyOptionValue String?
+
   category        Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   variantTemplate VariantTemplate? @relation(fields: [variantTemplateId], references: [id], onDelete: SetNull)
   variants        ProductVariant[]
 
+  @@unique([shopifyProductId, shopifyOptionValue])
   @@index([categoryId])
 }
 
@@ -80,6 +101,16 @@ model ProductVariant {
   quantity  Int    @default(0)
   sortOrder Int    @default(0)
 
+  // Resolved once when the product is linked, so an incoming webhook is an
+  // indexed lookup by id rather than a label match at request time.
+  // inventoryItemId is what the inventory mutations address; variantId is what
+  // order webhooks carry.
+  shopifyVariantId       String? @unique
+  shopifyInventoryItemId String? @unique
+
+  // Existing rows predate this column, hence the default alongside @updatedAt.
+  updatedAt DateTime @default(now()) @updatedAt
+
   product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
   adjustments StockAdjustment[]
 
@@ -89,16 +120,33 @@ model ProductVariant {
 
 // Minimal audit trail: who changed what stock, by how much, and the resulting qty.
 model StockAdjustment {
-  id               String   @id @default(cuid())
+  id               String           @id @default(cuid())
   productVariantId String
-  userId           String
+  // Null when Shopify made the change: there is no human author to point at.
+  userId           String?
   delta            Int
   resultingQty     Int
-  createdAt        DateTime @default(now())
+  source           AdjustmentSource @default(MANUAL)
+  // The Shopify order or refund id behind the change. Paired with the variant
+  // in a unique index, this is what makes webhook retries idempotent: Shopify
+  // redelivers freely, and the second insert simply loses.
+  externalRef      String?
+  createdAt        DateTime         @default(now())
 
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([externalRef, productVariantId])
   @@index([productVariantId])
   @@index([userId])
+}
+
+// Shopify's client-credentials tokens expire after 24 hours, so one is minted,
+// stored and reused rather than fetched on every call. Single row, fixed id.
+model ShopifyToken {
+  id          String   @id @default("singleton")
+  accessToken String
+  scope       String
+  expiresAt   DateTime
+  updatedAt   DateTime @updatedAt
 }
