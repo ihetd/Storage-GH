@@ -10,6 +10,7 @@ const tabs = [
   { href: "/dashboard/categories", label: "Categories" },
   { href: "/dashboard/variant-templates", label: "Variant templates" },
   { href: "/dashboard/employees", label: "Employees" },
+  { href: "/dashboard/shopify", label: "Shopify" },
 ];
 
 export function DashboardTabs() {
