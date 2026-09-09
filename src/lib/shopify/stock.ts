@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type { AdjustmentSource } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readShopifyQuantity } from "./push";
 
 // Applying a stock change that came from Shopify.
 //
@@ -93,6 +94,84 @@ export async function applyShopifyStockChanges(
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         outcome.duplicates.push(change.shopifyVariantId);
+        continue;
+      }
+      throw e;
+    }
+  }
+
+  return outcome;
+}
+
+/**
+ * Set the given variants to whatever Shopify says they hold now.
+ *
+ * Used for cancellations and refunds rather than adding the quantity back.
+ *
+ * Cancelling one order makes Shopify send *two* webhooks — orders/cancelled and
+ * refunds/create — describing the same physical restock. Adding a delta for
+ * each put two items back for one cancelled item. They carry different ids, so
+ * they do not look like duplicates to the retry guard; they are different
+ * events about one event in the world.
+ *
+ * Following Shopify's own count instead makes that harmless: applying it twice
+ * lands on the same number. It also fixes a second bug for free — cancelling
+ * with "restock inventory" unticked leaves Shopify's count down, and adding
+ * stock back here would have invented items that were never returned. Shopify
+ * decides whether a cancellation restocks, so Shopify is what to follow.
+ */
+export async function syncVariantsFromShopify(
+  shopifyVariantIds: string[],
+  source: AdjustmentSource,
+  externalRef: string,
+): Promise<ApplyOutcome> {
+  const outcome: ApplyOutcome = { applied: [], duplicates: [], unknown: [] };
+
+  for (const shopifyVariantId of shopifyVariantIds) {
+    const variant = await prisma.productVariant.findUnique({
+      where: { shopifyVariantId },
+      select: { id: true, label: true, quantity: true, shopifyInventoryItemId: true },
+    });
+
+    if (!variant?.shopifyInventoryItemId) {
+      outcome.unknown.push(shopifyVariantId);
+      continue;
+    }
+
+    const target = await readShopifyQuantity(variant.shopifyInventoryItemId);
+    if (target === null) {
+      outcome.unknown.push(shopifyVariantId);
+      continue;
+    }
+
+    const delta = target - variant.quantity;
+    // Already agrees — the usual case for the second of the two webhooks.
+    if (delta === 0) {
+      outcome.duplicates.push(shopifyVariantId);
+      continue;
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.productVariant.update({
+          where: { id: variant.id },
+          data: { quantity: target },
+        });
+        await tx.stockAdjustment.create({
+          data: {
+            productVariantId: variant.id,
+            userId: null,
+            delta,
+            resultingQty: target,
+            source,
+            externalRef,
+          },
+        });
+      });
+      outcome.applied.push({ label: variant.label, delta, quantity: target, clamped: false });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        outcome.duplicates.push(shopifyVariantId);
         continue;
       }
       throw e;
