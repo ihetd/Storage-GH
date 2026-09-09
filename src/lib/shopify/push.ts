@@ -39,6 +39,20 @@ type ReadResponse = {
   } | null;
 };
 
+/**
+ * What Shopify currently believes is available at the configured location.
+ * Null when it has no stock level there at all.
+ */
+export async function readShopifyQuantity(inventoryItemId: string): Promise<number | null> {
+  const config = getShopifyConfig();
+  if (!config) return null;
+  const data = await shopifyGraphQL<ReadResponse>(READ_QUERY, {
+    item: inventoryItemGid(inventoryItemId),
+    location: locationGid(config.locationId),
+  });
+  return data.inventoryItem?.inventoryLevel?.quantities?.[0]?.quantity ?? null;
+}
+
 /** How many times to re-read and retry when a concurrent sale moves the count. */
 const COMPARE_ATTEMPTS = 3;
 

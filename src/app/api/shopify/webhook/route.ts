@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { applyShopifyStockChanges, type StockChange } from "@/lib/shopify/stock";
+import {
+  applyShopifyStockChanges,
+  syncVariantsFromShopify,
+  type StockChange,
+} from "@/lib/shopify/stock";
 import { isHandledTopic, verifyWebhookSignature } from "@/lib/shopify/webhook";
 
 // Shopify order webhooks.
@@ -50,6 +54,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ignored: topic });
   }
 
+  let externalRef = "";
+  let source: "SHOPIFY_CANCEL" | "SHOPIFY_REFUND" = "SHOPIFY_CANCEL";
+
   let payload: unknown;
   try {
     payload = JSON.parse(rawBody);
@@ -57,43 +64,49 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  let changes: StockChange[];
-  let externalRef: string;
-  let source: "SHOPIFY_ORDER" | "SHOPIFY_CANCEL" | "SHOPIFY_REFUND";
+  // A sale is a delta: Shopify decrements once, and mirroring that keeps the
+  // two in step. A restore is not. Cancelling one order makes Shopify send both
+  // orders/cancelled and refunds/create for the same physical restock, so
+  // adding the quantity back twice put two items back for one — and cancelling
+  // without restocking would have invented items that never came back. For
+  // restores we follow Shopify's own count, which is idempotent and defers the
+  // decision to whoever actually made it.
+  let outcome;
 
-  if (topic === "refunds/create") {
-    const refund = payload as RefundPayload;
-    source = "SHOPIFY_REFUND";
-    externalRef = `refund:${refund.id}`;
-    changes = collapse(
-      (refund.refund_line_items ?? []).map((r) => ({
-        variantId: r.line_item?.variant_id,
-        quantity: r.quantity,
-      })),
-      1,
-    );
-  } else {
+  if (topic === "orders/create") {
     const order = payload as OrderPayload;
-    const sold = (order.line_items ?? []).map((l) => ({
-      variantId: l.variant_id,
-      quantity: l.quantity,
-    }));
-    if (topic === "orders/create") {
-      source = "SHOPIFY_ORDER";
-      externalRef = `order:${order.id}`;
-      changes = collapse(sold, -1);
+    const changes: StockChange[] = collapse(
+      (order.line_items ?? []).map((l) => ({ variantId: l.variant_id, quantity: l.quantity })),
+      -1,
+    );
+    if (changes.length === 0) return NextResponse.json({ ok: true, applied: 0 });
+    externalRef = `order:${order.id}`;
+    outcome = await applyShopifyStockChanges(changes, "SHOPIFY_ORDER", externalRef);
+  } else {
+    let variantIds: string[];
+
+    if (topic === "refunds/create") {
+      const refund = payload as RefundPayload;
+      externalRef = `refund:${refund.id}`;
+      source = "SHOPIFY_REFUND";
+      variantIds = (refund.refund_line_items ?? [])
+        .map((r) => r.line_item?.variant_id)
+        .filter((id): id is number => !!id)
+        .map(String);
     } else {
-      source = "SHOPIFY_CANCEL";
+      const order = payload as OrderPayload;
       externalRef = `cancel:${order.id}`;
-      changes = collapse(sold, 1);
+      source = "SHOPIFY_CANCEL";
+      variantIds = (order.line_items ?? [])
+        .map((l) => l.variant_id)
+        .filter((id): id is number => !!id)
+        .map(String);
     }
-  }
 
-  if (changes.length === 0) {
-    return NextResponse.json({ ok: true, applied: 0 });
+    variantIds = [...new Set(variantIds)];
+    if (variantIds.length === 0) return NextResponse.json({ ok: true, applied: 0 });
+    outcome = await syncVariantsFromShopify(variantIds, source, externalRef);
   }
-
-  const outcome = await applyShopifyStockChanges(changes, source, externalRef);
 
   if (outcome.unknown.length > 0) {
     // Not an error to Shopify — retrying will not create the missing link — but
