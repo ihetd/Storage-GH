@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Card, EmptyState, PageHeader, btnPrimary } from "@/components/ui";
+import { Card, EmptyState, PageHeader, btnPrimary, btnSecondary } from "@/components/ui";
 import { DeleteButton } from "@/components/delete-button";
 import { deleteProduct } from "@/lib/actions/products";
 
@@ -21,9 +21,14 @@ export default async function ProductsPage() {
         title="Products"
         description="Your catalog. Variants and stock counts live inside each product."
         actions={
-          <Link href="/dashboard/products/new" className={btnPrimary}>
-            + New product
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/dashboard/products/import" className={btnSecondary}>
+              Import spreadsheet
+            </Link>
+            <Link href="/dashboard/products/new" className={btnPrimary}>
+              + New product
+            </Link>
+          </div>
         }
       />
 
