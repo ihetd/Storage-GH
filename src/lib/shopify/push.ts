@@ -1,0 +1,163 @@
+import { prisma } from "@/lib/prisma";
+import { getShopifyConfig, inventoryItemGid, locationGid } from "./config";
+import { shopifyGraphQL } from "./client";
+
+// Sending a local stock change up to Shopify — the mirror of the webhook.
+//
+// A delta rather than an absolute quantity, so "we received two more" means the
+// same thing whatever Shopify's count happens to be. But Shopify also demands
+// changeFromQuantity: the count we believe is there before the delta lands. If
+// a customer buys in the same moment, the push is rejected instead of quietly
+// interleaving, and we read the new figure and try again. Louder and more
+// correct than either a blind delta or an absolute overwrite.
+//
+// Nothing here throws. It runs from after(), where a rejected promise helps
+// nobody and would never reach the person who clicked the button.
+
+const READ_QUERY = `
+  query CurrentStock($item: ID!, $location: ID!) {
+    inventoryItem(id: $item) {
+      inventoryLevel(locationId: $location) {
+        quantities(names: ["available"]) { quantity }
+      }
+    }
+  }
+`;
+
+const PUSH_MUTATION = `
+  mutation PushStock($input: InventoryAdjustQuantitiesInput!, $key: String!) {
+    inventoryAdjustQuantities(input: $input) @idempotent(key: $key) {
+      inventoryAdjustmentGroup { createdAt }
+      userErrors { field message }
+    }
+  }
+`;
+
+type ReadResponse = {
+  inventoryItem: {
+    inventoryLevel: { quantities: { quantity: number }[] } | null;
+  } | null;
+};
+
+/** How many times to re-read and retry when a concurrent sale moves the count. */
+const COMPARE_ATTEMPTS = 3;
+
+type PushResponse = {
+  inventoryAdjustQuantities: {
+    inventoryAdjustmentGroup: { createdAt: string } | null;
+    userErrors: { field: string[] | null; message: string }[];
+  };
+};
+
+export type PushOutcome =
+  | { status: "pushed" }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; reason: string };
+
+/**
+ * Push the change recorded by one StockAdjustment up to Shopify.
+ *
+ * Takes an id rather than a delta so the caller cannot accidentally push
+ * something that was never written locally, and so the adjustment's own id
+ * becomes the idempotency key: if this runs twice — a retried request, a
+ * double-invoked after() — Shopify applies it once.
+ */
+export async function pushAdjustmentToShopify(adjustmentId: string): Promise<PushOutcome> {
+  const config = getShopifyConfig();
+  if (!config) return { status: "skipped", reason: "Shopify not configured" };
+
+  try {
+    const adjustment = await prisma.stockAdjustment.findUnique({
+      where: { id: adjustmentId },
+      select: {
+        delta: true,
+        source: true,
+        productVariant: { select: { shopifyInventoryItemId: true, label: true } },
+      },
+    });
+
+    if (!adjustment) return { status: "skipped", reason: "adjustment not found" };
+
+    // The echo guard. A change that arrived from Shopify has already been
+    // applied there — Shopify decrements its own stock on a sale — so pushing
+    // it back would double-count it and, worse, start the two systems chasing
+    // each other. Callers only pass local changes, but this is the check that
+    // makes that a fact rather than a convention.
+    if (adjustment.source !== "MANUAL" && adjustment.source !== "ADMIN_EDIT") {
+      return { status: "skipped", reason: `source is ${adjustment.source}` };
+    }
+
+    const inventoryItemId = adjustment.productVariant.shopifyInventoryItemId;
+    if (!inventoryItemId) {
+      // Not an error: plenty of stock is not sold online at all.
+      return { status: "skipped", reason: "variant is not linked to Shopify" };
+    }
+
+    if (adjustment.delta === 0) return { status: "skipped", reason: "no change" };
+
+    const item = inventoryItemGid(inventoryItemId);
+    const location = locationGid(config.locationId);
+    let lastReason = "";
+
+    for (let attempt = 1; attempt <= COMPARE_ATTEMPTS; attempt += 1) {
+      const current = await shopifyGraphQL<ReadResponse>(READ_QUERY, { item, location });
+      const available = current.inventoryItem?.inventoryLevel?.quantities?.[0]?.quantity;
+      if (available === undefined) {
+        return { status: "failed", reason: "Shopify reports no stock level at this location" };
+      }
+
+      const data = await shopifyGraphQL<PushResponse>(PUSH_MUTATION, {
+        // The adjustment's own id, held constant across attempts: a compare
+        // failure applied nothing, so retrying under the same key is still one
+        // logical change, and a genuine second push of the same adjustment is
+        // still refused.
+        key: adjustmentId,
+        input: {
+          name: "available",
+          reason: "correction",
+          referenceDocumentUri: `https://storage-gh.vercel.app/adjustments/${adjustmentId}`,
+          changes: [
+            {
+              delta: adjustment.delta,
+              changeFromQuantity: available,
+              inventoryItemId: item,
+              locationId: location,
+            },
+          ],
+        },
+      });
+
+      const errors = data.inventoryAdjustQuantities.userErrors;
+      if (errors.length === 0) return { status: "pushed" };
+
+      lastReason = errors.map((e) => e.message).join("; ");
+
+      // Shopify refusing a reused idempotency key means this adjustment has
+      // already been applied — the desired outcome, not a failure. It surfaces
+      // as an error about mismatched parameters because the compare quantity
+      // has moved on since the original call. Reporting it as failed would put
+      // an error in the log for every retry and bury the real ones.
+      if (/idempotency key/i.test(lastReason)) {
+        return { status: "skipped", reason: "already pushed" };
+      }
+
+      // A stale compare means someone changed the count between our read and
+      // our write — almost always a sale. Read again and reapply; the delta is
+      // still the right change to make.
+      const stale = /quantity|changed|stale|conflict/i.test(lastReason);
+      if (!stale || attempt === COMPARE_ATTEMPTS) break;
+    }
+
+    console.error(`[shopify] push ${adjustmentId} rejected: ${lastReason}`);
+    return { status: "failed", reason: lastReason };
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : "unknown error";
+    console.error(`[shopify] push ${adjustmentId} failed: ${reason}`);
+    return { status: "failed", reason };
+  }
+}
+
+/** Push several adjustments, one product edit's worth. Sequential: small batches. */
+export async function pushAdjustmentsToShopify(ids: string[]): Promise<void> {
+  for (const id of ids) await pushAdjustmentToShopify(id);
+}

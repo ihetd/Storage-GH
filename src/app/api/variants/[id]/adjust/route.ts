@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireApiRole } from "@/lib/rbac";
+import { pushAdjustmentToShopify } from "@/lib/shopify/push";
 
 const bodySchema = z.object({
   delta: z.union([z.literal(1), z.literal(-1)]),
@@ -39,7 +40,7 @@ export async function POST(
   // Two concurrent "-1" on quantity=1 → exactly one satisfies the guard.
   // updateManyAndReturn folds the update + re-read into one statement, so the
   // happy path is two queries instead of four.
-  const resultingQty = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const updated = await tx.productVariant.updateManyAndReturn({
       where: { id, quantity: { gte: Math.max(0, -delta) } },
       data: { quantity: { increment: delta } },
@@ -47,18 +48,20 @@ export async function POST(
     });
     if (updated.length === 0) return null;
 
-    await tx.stockAdjustment.create({
+    const adjustment = await tx.stockAdjustment.create({
       data: {
         productVariantId: id,
         userId: user.id,
         delta,
         resultingQty: updated[0].quantity,
+        source: "MANUAL",
       },
+      select: { id: true },
     });
-    return updated[0].quantity;
+    return { quantity: updated[0].quantity, adjustmentId: adjustment.id };
   });
 
-  if (resultingQty === null) {
+  if (result === null) {
     // Failure path only: distinguish "no such variant" from a floor violation.
     const exists = await prisma.productVariant.findUnique({
       where: { id },
@@ -73,5 +76,11 @@ export async function POST(
     );
   }
 
-  return NextResponse.json({ id, quantity: resultingQty });
+  // Mirror the change up to Shopify after the response. The button must stay
+  // instant, and Shopify being slow or down is not a reason to refuse a stock
+  // change that is already recorded here — pushAdjustmentToShopify never
+  // throws, it reports.
+  after(() => pushAdjustmentToShopify(result.adjustmentId));
+
+  return NextResponse.json({ id, quantity: result.quantity });
 }
