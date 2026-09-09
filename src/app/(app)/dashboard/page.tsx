@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Drift } from "@/lib/shopify/reconcile";
+import { FixDriftButton } from "./fix-drift-button";
 import { Card, PageHeader } from "@/components/ui";
 
 export const metadata = { title: "Dashboard" };
@@ -120,7 +121,7 @@ export default async function DashboardOverview() {
             <>
               <p className="mt-2 text-sm text-cream/75">
                 {lastCheck.drifted > 0
-                  ? `${lastCheck.drifted} of ${lastCheck.checked} linked sizes hold a different number here than on Shopify. A sync message was probably lost — decide which count is right and set it here.`
+                  ? `${lastCheck.drifted} of ${lastCheck.checked} linked sizes hold a different number here than on Shopify. Correct the count here first if it is wrong, then use the button below — editing alone won't close the gap, because it moves Shopify by the same amount.`
                   : `${lastCheck.missing} linked ${lastCheck.missing === 1 ? "size no longer exists" : "sizes no longer exist"} on Shopify. Re-link them on the Shopify tab.`}
               </p>
               {Array.isArray(lastCheck.details) && lastCheck.details.length > 0 && (
@@ -133,6 +134,9 @@ export default async function DashboardOverview() {
                 </ul>
               )}
             </>
+          )}
+          {!lastCheck.error && lastCheck.drifted > 0 && (
+            <FixDriftButton count={lastCheck.drifted} />
           )}
           <p className="mt-3 text-xs text-cream/40">
             Checked {lastCheck.ranAt.toLocaleString()}
