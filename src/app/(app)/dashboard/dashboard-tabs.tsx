@@ -9,6 +9,7 @@ const tabs = [
   { href: "/dashboard/products", label: "Products" },
   { href: "/dashboard/categories", label: "Categories" },
   { href: "/dashboard/variant-templates", label: "Variant templates" },
+  { href: "/dashboard/scheduled", label: "Scheduled" },
   { href: "/dashboard/employees", label: "Employees" },
   { href: "/dashboard/shopify", label: "Shopify" },
 ];
