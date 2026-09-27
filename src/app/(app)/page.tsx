@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/rbac";
-import { canAdjustStock } from "@/lib/roles";
+import { canAccessDashboard, canAdjustStock } from "@/lib/roles";
 import { ProductGrid } from "./product-grid";
 
 export const metadata = { title: "Stock · GymHood Storage" };
@@ -25,11 +25,32 @@ export default async function HomePage() {
     }),
   ]);
 
+  // A viewer cannot adjust anything, so empty sizes are dropped before the page
+  // is built rather than merely hidden in the browser — otherwise the counts are
+  // still sitting in the page source for anyone who looks. Editors keep them:
+  // they are stripped in the grid instead, so selling the last piece leaves a
+  // way to put it back. Admins see everything.
+  const canSeeEverything = canAccessDashboard(user.role);
+  const canRestock = canAdjustStock(user.role);
+
+  const visible = products
+    .map((p) => ({
+      ...p,
+      variants:
+        canSeeEverything || canRestock
+          ? p.variants
+          : p.variants.filter((v) => v.quantity > 0),
+    }))
+    .filter((p) => canSeeEverything || p.variants.length > 0);
+
   return (
     <ProductGrid
       canAdjust={canAdjustStock(user.role)}
+      // Staff see only what is on the shelf. The admin sees everything,
+      // including the empties, and can filter down to just those.
+      isAdmin={canAccessDashboard(user.role)}
       categories={categories}
-      products={products.map((p) => ({
+      products={visible.map((p) => ({
         id: p.id,
         name: p.name,
         imageUrl: p.imageUrl,
