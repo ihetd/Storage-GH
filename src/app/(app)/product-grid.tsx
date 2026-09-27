@@ -44,16 +44,26 @@ export function ProductGrid({
   products,
   categories,
   canAdjust,
+  isAdmin,
 }: {
   products: Product[];
   categories: Category[];
   canAdjust: boolean;
+  isAdmin: boolean;
 }) {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sizeFilter, setSizeFilter] = useState<string | null>(null); // null = Normal
   const [sortMode, setSortMode] = useState<SortMode>("normal");
+  // Admin-only chip: show just the sizes that staff cannot see.
+  const [showHiddenOnly, setShowHiddenOnly] = useState(false);
+
+  // Sizes this person has adjusted since the page loaded. Selling the last
+  // piece would otherwise make the row disappear out from under the hand that
+  // did it, with no way to put it back — so anything touched stays on screen
+  // until the page is reloaded.
+  const [touched, setTouched] = useState<Set<string>>(() => new Set());
 
   // variantId -> live state (seeded lazily from props on first interaction).
   const [vstate, setVstate] = useState<Record<string, VariantState>>({});
@@ -99,6 +109,23 @@ export function ProductGrid({
     return basis.vstate[v.id]?.quantity ?? v.quantity;
   }
 
+  // An empty size is noise to someone picking stock off a shelf: it cannot be
+  // sold and cannot be counted. The admin still sees it, because deciding what
+  // to reorder means seeing what has run out.
+  function isVisible(v: Variant): boolean {
+    if (isAdmin) return true;
+    return settledQtyOf(v) > 0 || touched.has(v.id);
+  }
+
+  function visibleVariants(p: Product): Variant[] {
+    return isAdmin ? p.variants : p.variants.filter(isVisible);
+  }
+
+  /** Has this product any size that staff cannot see? */
+  function hasEmpty(p: Product): boolean {
+    return p.variants.some((v) => settledQtyOf(v) <= 0);
+  }
+
   // Distinct sizes across size-axis products. Grouped case-insensitively and
   // shown uppercase, so one product entered as "2xl" and another as "2xL" is a
   // single 2XL chip rather than two. Stored labels are left exactly as typed —
@@ -139,6 +166,12 @@ export function ProductGrid({
     return products.filter((p) => {
       if (categoryId && p.category.id !== categoryId) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
+      // Hidden is a view of what staff are missing, so it lists only products
+      // with something to miss.
+      if (showHiddenOnly && !hasEmpty(p)) return false;
+      // A product whose every size is empty has nothing on the shelf, so for
+      // staff it is not a product today.
+      if (!isAdmin && visibleVariants(p).length === 0) return false;
       if (sizeFilter) {
         // A size chip means "still in stock in this size". Products on another
         // attribute axis have no matching label and fall out here too.
@@ -148,7 +181,7 @@ export function ProductGrid({
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, categoryId, query, sizeFilter, basis]);
+  }, [products, categoryId, query, sizeFilter, basis, showHiddenOnly, isAdmin, touched]);
 
   // Quantity a product is ranked by: the selected size's count when a size is
   // active, otherwise its total across every size.
@@ -214,6 +247,10 @@ export function ProductGrid({
     const current = qtyOf(v);
     if (delta === -1 && current <= 0) return; // nothing to remove
     const previous = current;
+
+    // Remember it, so selling the last piece does not make the row vanish
+    // before it can be put back.
+    setTouched((t) => (t.has(v.id) ? t : new Set(t).add(v.id)));
     const optimistic = Math.max(0, current + delta);
 
     // Optimistic update + mark pending.
@@ -304,6 +341,19 @@ export function ProductGrid({
               {c.name}
             </FilterChip>
           ))}
+          {/*
+            Sits with the categories because that is how it is used — another
+            way to slice the same grid. Admin only: it exists to show what
+            everyone else is not being shown.
+          */}
+          {isAdmin && (
+            <FilterChip
+              active={showHiddenOnly}
+              onClick={() => setShowHiddenOnly((v) => !v)}
+            >
+              Hidden
+            </FilterChip>
+          )}
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {sizeOptions.length > 0 ? (
@@ -377,8 +427,15 @@ export function ProductGrid({
                       {p.name}
                     </div>
                     <div className="text-xs text-cream/50">
-                      {p.category.name} · {p.variants.length}{" "}
-                      {p.variants.length === 1 ? "variant" : "variants"}
+                      {p.category.name} · {visibleVariants(p).length}{" "}
+                      {visibleVariants(p).length === 1 ? "variant" : "variants"}
+                      {isAdmin && hasEmpty(p) && (
+                        <span className="text-cream/35">
+                          {" "}
+                          · {p.variants.filter((v) => settledQtyOf(v) <= 0).length} hidden
+                          from staff
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
@@ -412,7 +469,7 @@ export function ProductGrid({
                 {expanded ? (
                   <div className="border-t border-edge px-4 py-3">
                     <div className="grid gap-2">
-                      {p.variants.map((v) => {
+                      {visibleVariants(p).map((v) => {
                         const st = vstate[v.id];
                         const qty = qtyOf(v);
                         const highlighted =
