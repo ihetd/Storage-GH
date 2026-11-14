@@ -21,6 +21,7 @@ export function ImportForm() {
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
   const [mode, setMode] = useState<"replace" | "add">("replace");
   const [filename, setFilename] = useState<string | null>(null);
+  const [scheduled, setScheduled] = useState(false);
 
   function run(action: (fd: FormData) => Promise<ImportOutcome>) {
     const form = formRef.current;
@@ -50,7 +51,8 @@ export function ImportForm() {
         />
         <p className="mt-2 text-xs text-cream/60">
           Excel (.xlsx) or CSV. Columns: Product, Category, Size, Quantity, Image URL.
-          One row per size — repeat the product name for each of its sizes.{" "}
+          One row per size — repeat the product name for each of its sizes. A photo can be
+          a link in the Image URL column or a picture pasted into the product&apos;s first row.{" "}
           <Link href="/api/import-template" className="underline hover:text-cream/70">
             Download a template
           </Link>
@@ -100,6 +102,26 @@ export function ImportForm() {
             </label>
           </div>
         </fieldset>
+
+        <label className="mt-5 flex items-start gap-2 text-sm text-cream/85">
+          <input
+            type="checkbox"
+            name="scheduled"
+            checked={scheduled}
+            onChange={(e) => {
+              setScheduled(e.target.checked);
+              setOutcome(null);
+            }}
+            className="mt-1"
+          />
+          <span>
+            <span className="font-medium">Put new products in Scheduled</span>
+            <span className="block text-xs text-cream/65">
+              For an order that has not arrived yet. New products stay off the stock screens
+              until you receive them; products already in stock are updated as usual.
+            </span>
+          </span>
+        </label>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
@@ -199,9 +221,15 @@ export function ImportForm() {
 
           {outcome?.status === "done" && (
             <p className="mt-4">
-              <Link href="/dashboard/products" className={btnSecondary}>
-                Back to products
-              </Link>
+              {outcome.scheduled ? (
+                <Link href="/dashboard/scheduled" className={btnSecondary}>
+                  Open Scheduled
+                </Link>
+              ) : (
+                <Link href="/dashboard/products" className={btnSecondary}>
+                  Back to products
+                </Link>
+              )}
             </p>
           )}
         </Card>
