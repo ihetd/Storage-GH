@@ -17,9 +17,42 @@ const EXT: Record<string, string> = {
   "image/gif": "gif",
 };
 
-export async function fetchImageToR2(
-  rawUrl: string,
-): Promise<{ imageUrl: string; imageKey: string } | null> {
+export type StoredImage = { imageUrl: string; imageKey: string };
+
+/** Where a product photo in an import comes from: a link, or bytes pasted into the sheet. */
+export type ImageSource = { url: string } | { body: Uint8Array; contentType: string };
+
+/** Store an image the sheet carried, or fetch the one it linked to. */
+export async function importImageToR2(source: ImageSource): Promise<StoredImage | null> {
+  if ("url" in source) return fetchImageToR2(source.url);
+  const config = getR2Config();
+  if (!config?.publicBaseUrl) return null;
+  const ext = EXT[source.contentType];
+  if (!ext) return null;
+  if (source.body.byteLength === 0 || source.body.byteLength > MAX_BYTES) return null;
+  return storeImage(config, source.body, source.contentType, ext);
+}
+
+async function storeImage(
+  config: NonNullable<ReturnType<typeof getR2Config>>,
+  body: Uint8Array,
+  contentType: string,
+  ext: string,
+): Promise<StoredImage | null> {
+  const imageKey = `products/${randomUUID()}.${ext}`;
+  await getR2Client(config).send(
+    new PutObjectCommand({
+      Bucket: config.bucket,
+      Key: imageKey,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
+  const imageUrl = publicUrlForKey(config, imageKey);
+  return imageUrl ? { imageUrl, imageKey } : null;
+}
+
+export async function fetchImageToR2(rawUrl: string): Promise<StoredImage | null> {
   const config = getR2Config();
   if (!config) return null;
   // Without a public base there is no address to show the image at, so storing
@@ -65,16 +98,5 @@ export async function fetchImageToR2(
   // Checked again after reading: content-length is a claim, not a guarantee.
   if (body.byteLength === 0 || body.byteLength > MAX_BYTES) return null;
 
-  const imageKey = `products/${randomUUID()}.${ext}`;
-  await getR2Client(config).send(
-    new PutObjectCommand({
-      Bucket: config.bucket,
-      Key: imageKey,
-      Body: body,
-      ContentType: contentType,
-    }),
-  );
-
-  const imageUrl = publicUrlForKey(config, imageKey);
-  return imageUrl ? { imageUrl, imageKey } : null;
+  return storeImage(config, body, contentType, ext);
 }

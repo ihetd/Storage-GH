@@ -14,6 +14,9 @@ const lanOrigins = Object.values(networkInterfaces())
 const nextConfig: NextConfig = {
   allowedDevOrigins: lanOrigins,
   experimental: {
+    // Imports carry pasted product photos; the default 1 MB action body would
+    // reject a sheet with a handful of them. Vercel's own ceiling is 4.5 MB.
+    serverActions: { bodySizeLimit: "4mb" },
     // Cache visited/prefetched page segments in the browser's client cache so
     // bouncing between pages (e.g. Stock <-> Dashboard) is instant instead of
     // re-fetching from the server every time. Dynamic pages default to 0s (no

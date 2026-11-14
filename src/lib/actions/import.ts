@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/rbac";
 import { pushAdjustmentsToShopify } from "@/lib/shopify/push";
 import { parseStockSheet, groupRows, type ProductGroup } from "@/lib/import/parse-sheet";
 import { applyImport, planImport, type ImportPlan, type QuantityMode } from "@/lib/import/apply-sheet";
-import { fetchImageToR2 } from "@/lib/import/fetch-image";
+import { importImageToR2 } from "@/lib/import/fetch-image";
 
 // A spreadsheet is read twice: once to show what it would do, and again to do
 // it. Holding the parsed rows on the server between those two steps would mean
@@ -14,7 +14,9 @@ import { fetchImageToR2 } from "@/lib/import/fetch-image";
 // It is a few kilobytes, and it removes a whole class of "your session expired"
 // problems.
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+// Vercel refuses request bodies over 4.5 MB, and a sheet with pasted photos
+// gets there quickly. The form says so before the server has to.
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
 export type ImportPreview = {
   status: "preview";
@@ -28,6 +30,8 @@ export type ImportDone = {
   status: "done";
   plan: ImportPlan;
   imageFailures: string[];
+  /** New products went to the Scheduled list rather than into stock. */
+  scheduled: boolean;
 };
 
 export type ImportFailed = { status: "error"; errors: string[] };
@@ -42,7 +46,7 @@ async function readGroups(
     return { errors: ["Choose a spreadsheet first."] };
   }
   if (file.size > MAX_FILE_BYTES) {
-    return { errors: ["That file is larger than 5 MB. Split it into a few smaller sheets."] };
+    return { errors: ["That file is larger than 4 MB. Split it into a few smaller sheets, or use smaller pictures."] };
   }
 
   const parsed = await parseStockSheet(await file.arrayBuffer(), file.name);
@@ -87,10 +91,11 @@ export async function importStockSheet(formData: FormData): Promise<ImportOutcom
   const admin = await requireRole(["ADMIN"]);
 
   const mode: QuantityMode = formData.get("mode") === "add" ? "add" : "replace";
+  const scheduled = formData.get("scheduled") === "on";
   const { groups, errors } = await readGroups(formData);
   if (errors || !groups) return { status: "error", errors: errors ?? ["Could not read the file."] };
 
-  const result = await applyImport(groups, mode, admin.id, fetchImageToR2);
+  const result = await applyImport(groups, mode, admin.id, importImageToR2, { scheduled });
 
   // Same reasoning as the +/- buttons: the person waits for the database, not
   // for Shopify.
@@ -102,6 +107,7 @@ export async function importStockSheet(formData: FormData): Promise<ImportOutcom
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/products");
   revalidatePath("/dashboard/categories");
+  revalidatePath("/dashboard/scheduled");
 
-  return { status: "done", plan: result, imageFailures: result.imageFailures };
+  return { status: "done", plan: result, imageFailures: result.imageFailures, scheduled };
 }

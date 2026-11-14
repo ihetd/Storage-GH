@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { ProductGroup } from "./parse-sheet";
+import type { ImageSource, StoredImage } from "./fetch-image";
 
 // Turning parsed rows into products, categories and stock.
 //
@@ -116,11 +117,21 @@ async function categoryIdFor(name: string): Promise<string> {
  * Shopify push something to send. Their ids come back so the caller can push
  * them after responding.
  */
+export type ImportOptions = {
+  /**
+   * File new products under Scheduled — ordered but not yet on the shelf. They
+   * stay off the stock screens until an admin receives them. Products that
+   * already exist are left where they are.
+   */
+  scheduled?: boolean;
+};
+
 export async function applyImport(
   groups: ProductGroup[],
   mode: QuantityMode,
   userId: string,
-  uploadImage: (url: string) => Promise<{ imageUrl: string; imageKey: string } | null>,
+  uploadImage: (source: ImageSource) => Promise<StoredImage | null>,
+  options: ImportOptions = {},
 ): Promise<ImportResult> {
   const result: ImportResult = {
     ...(await planImport(groups)),
@@ -134,14 +145,21 @@ export async function applyImport(
       select: { id: true, imageUrl: true },
     });
 
-    // A photo is a nicety; failing to fetch one must not cost the import.
-    let image: { imageUrl: string; imageKey: string } | null = null;
-    if (group.imageUrl && !product?.imageUrl) {
+    // A photo is a nicety; failing to store one must not cost the import. A
+    // picture pasted into the sheet wins over a link, because it is the one the
+    // person actually looked at.
+    let image: StoredImage | null = null;
+    const source: ImageSource | null = group.image
+      ? { body: group.image.body, contentType: group.image.contentType }
+      : group.imageUrl
+        ? { url: group.imageUrl }
+        : null;
+    if (source && !product?.imageUrl) {
       try {
-        image = await uploadImage(group.imageUrl);
-        if (!image) result.imageFailures.push(`${group.name}: image could not be fetched`);
+        image = await uploadImage(source);
+        if (!image) result.imageFailures.push(`${group.name}: image could not be stored`);
       } catch {
-        result.imageFailures.push(`${group.name}: image could not be fetched`);
+        result.imageFailures.push(`${group.name}: image could not be stored`);
       }
     }
 
@@ -153,6 +171,7 @@ export async function applyImport(
           name: group.name.trim(),
           categoryId,
           attributeLabel: DEFAULT_ATTRIBUTE,
+          scheduled: options.scheduled === true,
           imageUrl: image?.imageUrl ?? null,
           imageKey: image?.imageKey ?? null,
         },

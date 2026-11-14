@@ -17,7 +17,12 @@ export type SheetRow = {
   label: string;
   quantity: number;
   imageUrl: string | null;
+  /** A picture pasted into the sheet on this row, if any. */
+  image: EmbeddedImage | null;
 };
+
+/** Bytes of a picture embedded in the workbook, ready to store. */
+export type EmbeddedImage = { body: Uint8Array; contentType: string };
 
 export type ParsedSheet = {
   rows: SheetRow[];
@@ -25,6 +30,37 @@ export type ParsedSheet = {
 };
 
 export const SHEET_COLUMNS = ["Product", "Category", "Size", "Quantity", "Image URL"] as const;
+
+const IMAGE_TYPES: Record<string, string> = {
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+};
+
+/**
+ * Pictures pasted into the sheet, keyed by the 1-based row they sit on.
+ *
+ * A supplier's order sheet is usually a grid of photos with sizes beside them,
+ * not a list of links, so a picture dropped into a row counts as that row's
+ * image. Only the row the picture's top-left corner is on claims it.
+ */
+function embeddedImagesByRow(
+  workbook: ExcelJS.Workbook,
+  sheet: ExcelJS.Worksheet,
+): Map<number, EmbeddedImage> {
+  const byRow = new Map<number, EmbeddedImage>();
+  for (const placed of sheet.getImages()) {
+    const row = Math.floor(placed.range.tl.nativeRow) + 1;
+    if (byRow.has(row)) continue;
+    const img = workbook.getImage(Number(placed.imageId));
+    const contentType = IMAGE_TYPES[(img.extension ?? "").toLowerCase()];
+    if (!img.buffer || !contentType) continue;
+    byRow.set(row, { body: new Uint8Array(img.buffer as ArrayBufferLike), contentType });
+  }
+  return byRow;
+}
 
 /** Header matching is forgiving: case, spaces and underscores are ignored. */
 function headerKey(text: string): string {
@@ -109,6 +145,7 @@ export async function parseStockSheet(
   const rows: SheetRow[] = [];
   const errors: string[] = [];
   const seen = new Set<string>();
+  const pictures = embeddedImagesByRow(workbook, sheet);
 
   for (let n = 2; n <= sheet.rowCount; n += 1) {
     const raw = sheet.getRow(n);
@@ -157,6 +194,7 @@ export async function parseStockSheet(
       label: values.label,
       quantity,
       imageUrl: imageUrl || null,
+      image: pictures.get(n) ?? null,
     });
   }
 
@@ -171,6 +209,7 @@ export type ProductGroup = {
   name: string;
   category: string;
   imageUrl: string | null;
+  image: EmbeddedImage | null;
   variants: { label: string; quantity: number }[];
 };
 
@@ -181,13 +220,14 @@ export function groupRows(rows: SheetRow[]): ProductGroup[] {
     const key = r.product.toLowerCase();
     let group = byName.get(key);
     if (!group) {
-      group = { name: r.product, category: r.category, imageUrl: r.imageUrl, variants: [] };
+      group = { name: r.product, category: r.category, imageUrl: r.imageUrl, image: r.image, variants: [] };
       byName.set(key, group);
     }
     // Category and photo come from the first row that names them, so later
     // rows for the same product need not repeat them.
     if (!group.category && r.category) group.category = r.category;
     if (!group.imageUrl && r.imageUrl) group.imageUrl = r.imageUrl;
+    if (!group.image && r.image) group.image = r.image;
     group.variants.push({ label: r.label, quantity: r.quantity });
   }
   return [...byName.values()];
