@@ -19,7 +19,7 @@ const Cropper = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full w-full items-center justify-center text-xs text-cream/50">
+      <div className="flex h-full w-full items-center justify-center text-xs text-cream/65">
         Loading editor…
       </div>
     ),
@@ -152,7 +152,7 @@ export function ImageField({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="text-xs text-cream/40">No image</span>
+            <span className="text-xs text-cream/60">No image</span>
           )}
         </div>
 
@@ -169,21 +169,21 @@ export function ImageField({
               <button
                 type="button"
                 onClick={removeImage}
-                className="text-sm font-medium text-red-400 hover:underline"
+                className="text-sm font-medium text-danger hover:underline"
               >
                 Remove
               </button>
             ) : null}
           </div>
-          <p className="max-w-xs text-xs text-cream/50">
+          <p className="max-w-xs text-xs text-cream/65">
             Optional. Crop & zoom before uploading. Works only once Cloudflare R2
             is configured; products save fine without a picture.
           </p>
           {status.kind === "uploading" ? (
-            <p className="text-xs text-cream/50">Uploading…</p>
+            <p className="text-xs text-cream/65">Uploading…</p>
           ) : null}
           {status.kind === "error" ? (
-            <p className="text-xs text-amber-400">
+            <p className="text-xs text-warn">
               {status.message}
             </p>
           ) : null}

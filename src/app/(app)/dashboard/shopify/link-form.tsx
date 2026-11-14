@@ -79,7 +79,7 @@ export function ShopifyLinkForm({
           />
         </label>
         {hiddenCount > 0 && (
-          <p className="mt-1 text-xs text-cream/45">
+          <p className="mt-1 text-xs text-cream/60">
             {hiddenCount} hidden by the search. They keep their links when you save.
           </p>
         )}
@@ -98,7 +98,7 @@ export function ShopifyLinkForm({
                     </span>
                   ) : null}
                 </h2>
-                <p className="mt-1 text-xs text-cream/50">
+                <p className="mt-1 text-xs text-cream/65">
                   {g.shopifySizeCount === 1 && g.sizes.every((s) => !s.localLabel)
                     ? "1 variant in Shopify"
                     : `${g.shopifySizeCount} ${g.shopifySizeCount === 1 ? "size" : "sizes"} in Shopify`}
@@ -131,9 +131,9 @@ export function ShopifyLinkForm({
                       s.status === "linked" &&
                         "border-edge text-cream/70",
                       s.status === "missing-local" &&
-                        "border-red-900/60 text-red-400",
+                        "border-danger-edge/60 text-danger",
                       s.status === "missing-shopify" &&
-                        "border-edge/60 text-cream/40",
+                        "border-edge/60 text-cream/60",
                     )}
                     title={
                       s.status === "linked"
@@ -145,10 +145,10 @@ export function ShopifyLinkForm({
                   >
                     {s.label}
                     {s.status === "linked" && s.localLabel !== s.label && (
-                      <span className="text-cream/40"> → {s.localLabel}</span>
+                      <span className="text-cream/60"> → {s.localLabel}</span>
                     )}
                     {s.status === "missing-local" && (
-                      <span className="text-red-400/70"> · not counted</span>
+                      <span className="text-danger/70"> · not counted</span>
                     )}
                     {s.status === "missing-shopify" && (
                       <span> · not on Shopify</span>
@@ -161,20 +161,20 @@ export function ShopifyLinkForm({
         ))}
       </div>
 
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
       <div className="mt-6 flex items-center gap-3">
         <button type="submit" className={btnPrimary} disabled={pending || !dirty}>
           {pending ? "Saving…" : "Save links"}
         </button>
         {saved && !dirty && (
-          <span className="text-sm text-emerald-400">
+          <span className="text-sm text-ok">
             Saved. Linking doesn&apos;t move any stock — check the dashboard for
             any counts that now disagree.
           </span>
         )}
         {dirty && !pending && (
-          <span className="text-sm text-cream/50">Unsaved changes.</span>
+          <span className="text-sm text-cream/65">Unsaved changes.</span>
         )}
       </div>
     </form>

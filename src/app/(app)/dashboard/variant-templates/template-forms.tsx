@@ -45,7 +45,7 @@ function Fields({ template }: { template?: Template }) {
       <div className="mt-3">
         <label className={labelClass}>
           Options{" "}
-          <span className="font-normal text-cream/45">
+          <span className="font-normal text-cream/60">
             (comma or newline separated)
           </span>
         </label>
@@ -76,7 +76,7 @@ export function TemplateCreateForm() {
           Add template
         </button>
         {error ? (
-          <p className="text-sm text-red-400">{error}</p>
+          <p className="text-sm text-danger">{error}</p>
         ) : null}
       </div>
     </form>
@@ -103,7 +103,7 @@ export function TemplateRow({ template }: { template: Template }) {
               Cancel
             </button>
             {error ? (
-              <p className="text-sm text-red-400">{error}</p>
+              <p className="text-sm text-danger">{error}</p>
             ) : null}
           </div>
         </form>
@@ -115,7 +115,7 @@ export function TemplateRow({ template }: { template: Template }) {
     <div className="flex items-start justify-between gap-4 rounded-xl border border-edge bg-surface p-4">
       <div>
         <div className="font-medium text-cream">{template.name}</div>
-        <div className="mt-0.5 text-xs text-cream/50">
+        <div className="mt-0.5 text-xs text-cream/65">
           {template.attributeLabel}
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5">

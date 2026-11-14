@@ -46,7 +46,7 @@ export default async function ScheduledPage() {
         </EmptyState>
       ) : (
         <>
-          <p className="mb-3 text-xs text-cream/45">
+          <p className="mb-3 text-xs text-cream/60">
             {products.length} {products.length === 1 ? "product" : "products"} ·{" "}
             {pieces} {pieces === 1 ? "piece" : "pieces"} expected
           </p>
@@ -57,7 +57,7 @@ export default async function ScheduledPage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-cream">{product.name}</h2>
-                    <p className="mt-1 text-xs text-cream/50">
+                    <p className="mt-1 text-xs text-cream/65">
                       {product.category.name} · {product.variants.length}{" "}
                       {product.variants.length === 1 ? "size" : "sizes"}
                     </p>
@@ -85,7 +85,7 @@ export default async function ScheduledPage() {
                         className="rounded-md border border-edge px-2 py-1 text-xs text-cream/70"
                       >
                         {v.label}
-                        <span className="text-cream/40"> · {v.quantity}</span>
+                        <span className="text-cream/60"> · {v.quantity}</span>
                       </li>
                     ))}
                   </ul>

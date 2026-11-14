@@ -311,7 +311,7 @@ export function ProductGrid({
             <div className="font-display text-3xl font-semibold leading-none text-gold tabular-nums">
               {totalUnits}
             </div>
-            <div className="mt-1 text-[10px] uppercase tracking-wide text-cream/40">
+            <div className="mt-1 text-[11px] uppercase tracking-wide text-cream/60">
               {totalCaption}
             </div>
           </div>
@@ -322,10 +322,16 @@ export function ProductGrid({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search products…"
-          className="w-full max-w-sm rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-cream placeholder:text-cream/35 outline-none transition focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+          className="w-full max-w-sm rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-cream placeholder:text-cream/55 outline-none transition focus-visible:border-gold/60 focus-visible:ring-2 focus-visible:ring-gold/20 motion-reduce:transition-none"
         />
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/*
+          Two rows, not one wrapping block. On a phone each row scrolls
+          sideways and bleeds to the screen edges, so the cut-off last chip is
+          the scroll hint; on a desktop they wrap as before. With the old stack
+          the first product sat ~680px down a 375px screen.
+        */}
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
           <FilterChip
             active={categoryId === null}
             onClick={() => setCategoryId(null)}
@@ -355,10 +361,12 @@ export function ProductGrid({
             </FilterChip>
           )}
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+        </div>
+
+        <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden sm:justify-end">
             {sizeOptions.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-wide text-cream/40">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="shrink-0 text-[11px] uppercase tracking-wide text-cream/60">
                   Size
                 </span>
                 <FilterChip
@@ -388,18 +396,17 @@ export function ProductGrid({
               // Deliberately not `inputClass` — that string is `w-full`, and a
               // `w-auto` override would depend on Tailwind's emitted order
               // rather than on the order written here.
-              className="rounded-lg border border-edge bg-raised px-2.5 py-1 text-xs text-cream outline-none transition focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+              className="ml-auto h-10 shrink-0 rounded-lg border border-edge bg-raised px-2.5 text-xs text-cream outline-none transition focus-visible:border-gold/60 focus-visible:ring-2 focus-visible:ring-gold/20 motion-reduce:transition-none sm:h-8"
             >
               <option value="normal">Sort: Normal</option>
               <option value="desc">Quantity: High → Low</option>
               <option value="asc">Quantity: Low → High</option>
             </select>
-          </div>
         </div>
       </div>
 
       {sorted.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-edge px-4 py-12 text-center text-sm text-cream/50">
+        <div className="rounded-xl border border-dashed border-edge px-4 py-12 text-center text-sm text-cream/65">
           No products match.
         </div>
       ) : (
@@ -426,11 +433,11 @@ export function ProductGrid({
                     <div className="truncate font-medium text-cream">
                       {p.name}
                     </div>
-                    <div className="text-xs text-cream/50">
+                    <div className="text-xs text-cream/65">
                       {p.category.name} · {visibleVariants(p).length}{" "}
                       {visibleVariants(p).length === 1 ? "variant" : "variants"}
                       {isAdmin && hasEmpty(p) && (
-                        <span className="text-cream/35">
+                        <span className="text-cream/55">
                           {" "}
                           · {p.variants.filter((v) => settledQtyOf(v) <= 0).length} hidden
                           from staff
@@ -442,27 +449,27 @@ export function ProductGrid({
                     <div
                       className={clsx(
                         "text-sm font-semibold tabular-nums",
-                        total === 0 ? "text-red-400" : "text-gold",
+                        total === 0 ? "text-danger" : "text-gold",
                       )}
                     >
                       {total}
                     </div>
-                    <div className="text-[10px] uppercase tracking-wide text-cream/40">
+                    <div className="text-[11px] uppercase tracking-wide text-cream/60">
                       in stock
                     </div>
                     {sizeQty !== null ? (
-                      <div className="mt-0.5 text-[10px] tabular-nums text-gold/60">
+                      <div className="mt-0.5 text-[11px] tabular-nums text-gold/60">
                         {sizeQty} in {sizeFilter}
                       </div>
                     ) : null}
                   </div>
                   <span
                     className={clsx(
-                      "ml-1 text-cream/40 transition-transform",
+                      "ml-1 flex text-cream/60 transition-transform motion-reduce:transition-none",
                       expanded && "rotate-180",
                     )}
                   >
-                    ▾
+                    <Icon d={CHEVRON} />
                   </span>
                 </button>
 
@@ -498,15 +505,15 @@ export function ProductGrid({
                                   disabled={st?.pending || qty <= 0}
                                   label="Decrease"
                                 >
-                                  −
+                                  <Icon d={MINUS} />
                                 </StepButton>
                                 <span
                                   className={clsx(
                                     "w-10 text-center text-sm font-semibold tabular-nums",
                                     qty === 0
-                                      ? "text-red-400"
+                                      ? "text-danger"
                                       : qty <= LOW_STOCK_AT
-                                        ? "text-amber-400"
+                                        ? "text-warn"
                                         : "text-cream",
                                   )}
                                 >
@@ -517,7 +524,7 @@ export function ProductGrid({
                                   disabled={st?.pending}
                                   label="Increase"
                                 >
-                                  +
+                                  <Icon d={PLUS} />
                                 </StepButton>
                               </div>
                             ) : (
@@ -525,14 +532,14 @@ export function ProductGrid({
                                 className={clsx(
                                   "text-sm font-semibold tabular-nums",
                                   qty === 0
-                                    ? "text-red-400"
+                                    ? "text-danger"
                                     : qty <= LOW_STOCK_AT
-                                      ? "text-amber-400"
+                                      ? "text-warn"
                                       : "text-cream",
                                 )}
                               >
                                 {qty}{" "}
-                                <span className="text-xs font-normal text-cream/40">
+                                <span className="text-xs font-normal text-cream/60">
                                   in stock
                                 </span>
                               </span>
@@ -541,7 +548,7 @@ export function ProductGrid({
                             <StockFlag qty={qty} />
 
                             {st?.error ? (
-                              <span className="text-xs text-red-400">
+                              <span className="text-xs text-danger">
                                 {st.error}
                               </span>
                             ) : null}
@@ -564,14 +571,14 @@ export function ProductGrid({
 function StockFlag({ qty }: { qty: number }) {
   if (qty === 0) {
     return (
-      <span className="rounded-full bg-red-950/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-400 ring-1 ring-inset ring-red-900">
+      <span className="rounded-full bg-danger-ink/60 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-danger ring-1 ring-inset ring-danger-edge">
         Out
       </span>
     );
   }
   if (qty <= LOW_STOCK_AT) {
     return (
-      <span className="rounded-full bg-amber-950/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400 ring-1 ring-inset ring-amber-900">
+      <span className="rounded-full bg-warn-ink/50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-warn ring-1 ring-inset ring-warn-edge">
         Low
       </span>
     );
@@ -598,8 +605,8 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={clsx(
-        "rounded-full font-medium transition",
-        compact ? "px-2.5 py-0.5 text-xs" : "px-3 py-1 text-sm",
+        "inline-flex shrink-0 items-center whitespace-nowrap rounded-full font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 motion-reduce:transition-none",
+        compact ? "h-10 px-3 text-xs sm:h-8" : "h-11 px-4 text-sm sm:h-9",
         active
           ? "bg-maroon text-cream"
           : "bg-surface text-cream/70 ring-1 ring-edge hover:text-cream hover:ring-gold/40",
@@ -627,7 +634,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-edge bg-surface text-lg font-semibold text-cream transition hover:border-gold/40 hover:text-gold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-edge bg-surface text-cream transition hover:border-gold/40 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
     >
       {children}
     </button>
@@ -658,5 +665,31 @@ function Thumb({ name, imageUrl }: { name: string; imageUrl: string | null }) {
     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-raised text-xs font-semibold text-gold/60">
       {initials || "?"}
     </div>
+  );
+}
+
+// Icons are drawn, not typed. A "−" or "▾" in a button is a text glyph whose
+// weight, alignment and size drift with the font; a stroked path renders the
+// same everywhere and sits on the pixel grid.
+const PLUS = "M10 4v12M4 10h12";
+const MINUS = "M4 10h12";
+const CHEVRON = "M5 8l5 5 5-5";
+
+function Icon({ d, className }: { d: string; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d={d} />
+    </svg>
   );
 }

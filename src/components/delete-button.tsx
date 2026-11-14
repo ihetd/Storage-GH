@@ -39,7 +39,7 @@ export function DeleteButton({
           type="button"
           onClick={run}
           disabled={pending}
-          className="rounded-md bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+          className="rounded-md bg-danger-strong px-2.5 py-1 text-xs font-semibold text-white hover:bg-danger-mid disabled:opacity-60"
         >
           {pending ? "…" : "Yes"}
         </button>
@@ -58,13 +58,13 @@ export function DeleteButton({
   return (
     <span className="inline-flex items-center gap-2">
       {error ? (
-        <span className="text-xs text-red-400">{error}</span>
+        <span className="text-xs text-danger">{error}</span>
       ) : null}
       <button
         type="button"
         onClick={() => setConfirming(true)}
         className={clsx(
-          "rounded-md px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40",
+          "rounded-md px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger-ink/40",
           className,
         )}
       >

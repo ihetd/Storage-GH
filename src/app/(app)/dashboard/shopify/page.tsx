@@ -96,8 +96,8 @@ export default async function ShopifyPage() {
       />
 
       {(unlinked > 0 || unsellable > 0) && (
-        <Card className="mb-6 border-red-900/60">
-          <h2 className="text-sm font-semibold text-red-400">Needs attention</h2>
+        <Card className="mb-6 border-danger-edge/60">
+          <h2 className="text-sm font-semibold text-danger">Needs attention</h2>
           <ul className="mt-2 space-y-1 text-sm text-cream/75">
             {/*
               Whole sentences rather than words interleaved with expressions.

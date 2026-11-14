@@ -72,7 +72,7 @@ export function EmployeeCreateForm() {
           Add employee
         </button>
         {error ? (
-          <p className="text-sm text-red-400">{error}</p>
+          <p className="text-sm text-danger">{error}</p>
         ) : null}
       </div>
     </form>
@@ -113,7 +113,7 @@ export function EmployeeRow({
               <div>
                 <label className={labelClass}>
                   New password{" "}
-                  <span className="font-normal text-cream/45">
+                  <span className="font-normal text-cream/60">
                     (blank = unchanged)
                   </span>
                 </label>
@@ -137,7 +137,7 @@ export function EmployeeRow({
                 Cancel
               </button>
               {error ? (
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-danger">{error}</p>
               ) : null}
             </div>
           </form>
@@ -150,7 +150,7 @@ export function EmployeeRow({
     <tr className="border-t border-edge/60">
       <td className="px-3 py-2.5">
         <div className="font-medium text-cream">{employee.name}</div>
-        <div className="text-xs text-cream/50">
+        <div className="text-xs text-cream/65">
           @{employee.username}
           {isSelf ? " · you" : ""}
         </div>
@@ -160,9 +160,9 @@ export function EmployeeRow({
       </td>
       <td className="px-3 py-2.5">
         {employee.active ? (
-          <span className="text-xs font-medium text-emerald-400">Active</span>
+          <span className="text-xs font-medium text-ok">Active</span>
         ) : (
-          <span className="text-xs font-medium text-cream/40">Inactive</span>
+          <span className="text-xs font-medium text-cream/60">Inactive</span>
         )}
       </td>
       <td className="px-3 py-2.5 text-right">
