@@ -103,7 +103,7 @@ export default async function DashboardOverview() {
         net nobody can see working is one nobody trusts.
       */}
       {lastCheck && !lastCheck.error && lastCheck.drifted === 0 && lastCheck.missing === 0 && (
-        <p className="mt-6 text-xs text-cream/40">
+        <p className="mt-6 text-xs text-cream/60">
           Shopify and stock agreed on all {lastCheck.checked} linked{" "}
           {lastCheck.checked === 1 ? "size" : "sizes"} when checked{" "}
           {lastCheck.ranAt.toLocaleString()}.
@@ -111,8 +111,8 @@ export default async function DashboardOverview() {
       )}
 
       {lastCheck && (lastCheck.drifted > 0 || lastCheck.missing > 0 || lastCheck.error) && (
-        <Card className="mt-6 border-red-900/60">
-          <h2 className="text-sm font-semibold text-red-400">
+        <Card className="mt-6 border-danger-edge/60">
+          <h2 className="text-sm font-semibold text-danger">
             Shopify and stock disagree
           </h2>
           {lastCheck.error ? (
@@ -140,7 +140,7 @@ export default async function DashboardOverview() {
           {!lastCheck.error && lastCheck.drifted > 0 && (
             <FixDriftButton count={lastCheck.drifted} />
           )}
-          <p className="mt-3 text-xs text-cream/40">
+          <p className="mt-3 text-xs text-cream/60">
             Checked {lastCheck.ranAt.toLocaleString()}
           </p>
         </Card>
@@ -152,7 +152,7 @@ export default async function DashboardOverview() {
             Recent activity
           </h2>
           {recent.length === 0 ? (
-            <p className="mt-3 text-sm text-cream/50">
+            <p className="mt-3 text-sm text-cream/65">
               No stock changes yet. Adjustments made with the +/− buttons will
               show up here.
             </p>
@@ -169,7 +169,7 @@ export default async function DashboardOverview() {
                     </span>{" "}
                     <span
                       className={
-                        a.delta > 0 ? "text-emerald-400" : "text-red-400"
+                        a.delta > 0 ? "text-ok" : "text-danger"
                       }
                     >
                       {a.delta > 0 ? `+${a.delta}` : a.delta}
@@ -177,11 +177,11 @@ export default async function DashboardOverview() {
                     <span className="text-cream/60">
                       {a.productVariant.product.name} · {a.productVariant.label}
                     </span>{" "}
-                    <span className="text-cream/40">
+                    <span className="text-cream/60">
                       → {a.resultingQty}
                     </span>
                   </div>
-                  <span className="shrink-0 text-xs text-cream/40">
+                  <span className="shrink-0 text-xs text-cream/60">
                     {timeFormat.format(a.createdAt)}
                   </span>
                 </li>
@@ -195,7 +195,7 @@ export default async function DashboardOverview() {
             Low stock
           </h2>
           {lowStock.length === 0 ? (
-            <p className="mt-3 text-sm text-cream/50">
+            <p className="mt-3 text-sm text-cream/65">
               Nothing running low — every variant is above {LOW_STOCK_AT}.
             </p>
           ) : (
@@ -210,13 +210,13 @@ export default async function DashboardOverview() {
                     className="min-w-0 truncate text-cream/85 hover:text-gold"
                   >
                     {v.product.name}{" "}
-                    <span className="text-cream/50">· {v.label}</span>
+                    <span className="text-cream/65">· {v.label}</span>
                   </Link>
                   <span
                     className={
                       v.quantity === 0
-                        ? "shrink-0 rounded-full bg-red-950/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-400 ring-1 ring-inset ring-red-900"
-                        : "shrink-0 rounded-full bg-amber-950/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400 ring-1 ring-inset ring-amber-900"
+                        ? "shrink-0 rounded-full bg-danger-ink/60 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-danger ring-1 ring-inset ring-danger-edge"
+                        : "shrink-0 rounded-full bg-warn-ink/50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-warn ring-1 ring-inset ring-warn-edge"
                     }
                   >
                     {v.quantity === 0 ? "Out" : `${v.quantity} left`}

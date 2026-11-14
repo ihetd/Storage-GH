@@ -108,12 +108,12 @@ export function ProductCombobox({
           setQuery("");
         }}
       >
-        <span className={selected ? "text-cream" : "text-cream/40"}>
+        <span className={selected ? "text-cream" : "text-cream/60"}>
           {selected?.name ?? placeholder}
         </span>
-        <span aria-hidden="true" className="ml-2 shrink-0 text-cream/40">
-          ▾
-        </span>
+        <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="ml-2 shrink-0 text-cream/60">
+          <path d="M5 8l5 5 5-5" />
+        </svg>
       </button>
 
       {open && (
@@ -140,7 +140,7 @@ export function ProductCombobox({
               role="option"
               aria-selected={value === ""}
               className={clsx(
-                "cursor-pointer px-3 py-2 text-sm text-cream/50",
+                "cursor-pointer px-3 py-2 text-sm text-cream/65",
                 active === 0 && "bg-raised",
               )}
               onPointerDown={(e) => {
@@ -173,7 +173,7 @@ export function ProductCombobox({
             ))}
 
             {filtered.length === 0 && (
-              <li className="px-3 py-2 text-sm text-cream/40">
+              <li className="px-3 py-2 text-sm text-cream/60">
                 No product matches “{query}”.
               </li>
             )}

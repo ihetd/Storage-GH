@@ -19,8 +19,28 @@
   --color-maroon-dark: #571414;
   --color-gold: #c8aa7a;
   --color-cream: #f2e9dc;
+
+  /*
+   * Semantic state colours. These used to be raw Tailwind palette classes
+   * (red-400, amber-400, emerald-400…) repeated across sixty-odd call sites,
+   * which meant "the out-of-stock red" had no single home. The values are the
+   * ones that were already shipping, so this changes where they live, not how
+   * anything looks.
+   */
+  --color-danger: #f87171;
+  --color-danger-soft: #fca5a5;
+  --color-danger-mid: #ef4444;
+  --color-danger-strong: #dc2626;
+  --color-danger-edge: #7f1d1d;
+  --color-danger-ink: #450a0a;
+  --color-warn: #fbbf24;
+  --color-warn-soft: #fcd34d;
+  --color-warn-ink: #451a03;
+  --color-warn-edge: #78350f;
+  --color-ok: #34d399;
+  --color-ok-edge: #064e3b;
   --font-sans: var(--font-geist-sans), var(--font-arabic);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-display: var(--font-playfair), var(--font-arabic);
 }
 

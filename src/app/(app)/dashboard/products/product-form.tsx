@@ -158,7 +158,7 @@ export function ProductForm({
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-gold">Variants</h2>
-            <p className="text-xs text-cream/50">
+            <p className="text-xs text-cream/65">
               e.g. sizes or colors, each with its own stock count.
             </p>
           </div>
@@ -190,7 +190,7 @@ export function ProductForm({
           )}
         </div>
 
-        <div className="mb-2 grid grid-cols-[1fr_7rem_2.5rem] gap-2 text-xs font-medium text-cream/45">
+        <div className="mb-2 grid grid-cols-[1fr_7rem_2.75rem] gap-2 text-xs font-medium text-cream/60">
           <span>{attributeLabel} label</span>
           <span>Quantity</span>
           <span />
@@ -199,7 +199,7 @@ export function ProductForm({
           {variants.map((v) => (
             <div
               key={v.key}
-              className="grid grid-cols-[1fr_7rem_2.5rem] items-center gap-2"
+              className="grid grid-cols-[1fr_7rem_2.75rem] items-center gap-2"
             >
               <input
                 value={v.label}
@@ -222,9 +222,11 @@ export function ProductForm({
                 type="button"
                 onClick={() => removeVariant(v.key)}
                 aria-label="Remove variant"
-                className="rounded-md border border-edge py-2 text-cream/50 transition hover:bg-raised hover:text-cream"
+                className="flex h-11 w-11 items-center justify-center rounded-md border border-edge text-cream/60 transition hover:bg-raised hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 motion-reduce:transition-none"
               >
-                ✕
+                <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
+                  <path d="M5 5l10 10M15 5L5 15" />
+                </svg>
               </button>
             </div>
           ))}
@@ -240,7 +242,7 @@ export function ProductForm({
       </div>
 
       {error ? (
-        <p className="rounded-lg border border-red-900/50 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+        <p className="rounded-lg border border-danger-edge/50 bg-danger-ink/40 px-3 py-2 text-sm text-danger-soft">
           {error}
         </p>
       ) : null}

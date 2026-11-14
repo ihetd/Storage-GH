@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import {
   Geist,
-  Geist_Mono,
   IBM_Plex_Sans_Arabic,
   Playfair_Display,
 } from "next/font/google";
@@ -9,11 +8,6 @@ import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
@@ -63,7 +57,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${plexArabic.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${playfair.variable} ${plexArabic.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-ink text-cream">{children}</body>
     </html>

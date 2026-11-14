@@ -42,7 +42,7 @@ export function ReceiveProductButton({ id, name }: { id: string; name: string })
 
   return (
     <span className="inline-flex items-center gap-2">
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
       <button type="button" onClick={() => setConfirming(true)} className={btnSecondary}>
         Move to stock
       </button>

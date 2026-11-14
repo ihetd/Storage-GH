@@ -4,18 +4,18 @@ import { clsx } from "clsx";
 // dashboard without repeating long className lists.
 
 export const inputClass =
-  "w-full rounded-lg border border-edge bg-raised px-3 py-2 text-sm text-cream placeholder:text-cream/35 outline-none transition focus:border-gold/60 focus:ring-2 focus:ring-gold/20";
+  "w-full rounded-lg border border-edge bg-raised px-3 py-2 text-sm text-cream placeholder:text-cream/55 outline-none transition focus-visible:border-gold/60 focus-visible:ring-2 focus-visible:ring-gold/20 motion-reduce:transition-none";
 
 export const labelClass = "block text-sm font-medium text-cream/80";
 
 export const btnPrimary =
-  "inline-flex items-center justify-center rounded-lg bg-maroon px-3.5 py-2 text-sm font-semibold text-cream transition hover:bg-maroon-light focus:outline-none focus:ring-2 focus:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center rounded-lg bg-maroon px-3.5 py-2 text-sm font-semibold text-cream transition hover:bg-maroon-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-60";
 
 export const btnSecondary =
-  "inline-flex items-center justify-center rounded-lg border border-edge bg-surface px-3 py-1.5 text-sm font-medium text-cream/90 transition hover:border-gold/40 hover:text-cream focus:outline-none focus:ring-2 focus:ring-gold/30 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center rounded-lg border border-edge bg-surface px-3 py-1.5 text-sm font-medium text-cream/90 transition hover:border-gold/40 hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/30 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-60";
 
 export const btnDanger =
-  "inline-flex items-center justify-center rounded-lg border border-red-900/60 bg-surface px-3 py-1.5 text-sm font-medium text-red-400 transition hover:bg-red-950/40 focus:outline-none focus:ring-2 focus:ring-red-500/40 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center rounded-lg border border-danger-edge/60 bg-surface px-3 py-1.5 text-sm font-medium text-danger transition hover:bg-danger-ink/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-mid/40 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-60";
 
 export function Card({
   children,
@@ -66,7 +66,7 @@ export function PageHeader({
 
 export function EmptyState({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-edge px-4 py-10 text-center text-sm text-cream/50">
+    <div className="rounded-xl border border-dashed border-edge px-4 py-10 text-center text-sm text-cream/65">
       {children}
     </div>
   );
@@ -77,7 +77,7 @@ export function EmptyState({ children }: { children: React.ReactNode }) {
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div
-      className={clsx("animate-pulse rounded-md bg-raised", className)}
+      className={clsx("animate-pulse rounded-md bg-raised motion-reduce:animate-none", className)}
       aria-hidden="true"
     />
   );

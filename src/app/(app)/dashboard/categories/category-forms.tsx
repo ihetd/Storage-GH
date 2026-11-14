@@ -36,7 +36,7 @@ export function CategoryCreateForm() {
         Add category
       </button>
       {error ? (
-        <p className="w-full text-sm text-red-400">{error}</p>
+        <p className="w-full text-sm text-danger">{error}</p>
       ) : null}
     </form>
   );
@@ -73,7 +73,7 @@ export function CategoryRow({ category }: { category: Category }) {
               Cancel
             </button>
             {error ? (
-              <p className="w-full text-sm text-red-400">{error}</p>
+              <p className="w-full text-sm text-danger">{error}</p>
             ) : null}
           </form>
         </td>

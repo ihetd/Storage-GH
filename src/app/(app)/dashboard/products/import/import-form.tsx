@@ -48,7 +48,7 @@ export function ImportForm() {
             setOutcome(null);
           }}
         />
-        <p className="mt-2 text-xs text-cream/45">
+        <p className="mt-2 text-xs text-cream/60">
           Excel (.xlsx) or CSV. Columns: Product, Category, Size, Quantity, Image URL.
           One row per size — repeat the product name for each of its sizes.{" "}
           <Link href="/api/import-template" className="underline hover:text-cream/70">
@@ -74,7 +74,7 @@ export function ImportForm() {
               />
               <span>
                 <span className="font-medium">This is what we have now</span>
-                <span className="block text-xs text-cream/50">
+                <span className="block text-xs text-cream/65">
                   Counts are replaced with the numbers in the sheet. Use for a stocktake.
                 </span>
               </span>
@@ -93,7 +93,7 @@ export function ImportForm() {
               />
               <span>
                 <span className="font-medium">This is what just arrived</span>
-                <span className="block text-xs text-cream/50">
+                <span className="block text-xs text-cream/65">
                   Quantities are added to what is already there. Use for a delivery.
                 </span>
               </span>
@@ -124,8 +124,8 @@ export function ImportForm() {
       </Card>
 
       {outcome?.status === "error" && (
-        <Card className="border-red-900/60">
-          <h2 className="text-sm font-semibold text-red-400">
+        <Card className="border-danger-edge/60">
+          <h2 className="text-sm font-semibold text-danger">
             Nothing was imported — the sheet has {outcome.errors.length === 1 ? "a problem" : "problems"}
           </h2>
           <ul className="mt-2 space-y-1 text-sm text-cream/75">
@@ -134,7 +134,7 @@ export function ImportForm() {
             ))}
           </ul>
           {outcome.errors.length > 20 && (
-            <p className="mt-2 text-xs text-cream/45">
+            <p className="mt-2 text-xs text-cream/60">
               …and {outcome.errors.length - 20} more.
             </p>
           )}
@@ -142,7 +142,7 @@ export function ImportForm() {
       )}
 
       {plan && (
-        <Card className={outcome?.status === "done" ? "border-emerald-900/60" : undefined}>
+        <Card className={outcome?.status === "done" ? "border-ok-edge/60" : undefined}>
           <h2 className="text-sm font-semibold text-gold">
             {outcome?.status === "done" ? "Imported" : "This is what would happen"}
           </h2>
@@ -158,7 +158,7 @@ export function ImportForm() {
           </ul>
 
           {outcome?.status === "preview" && outcome.warnings.length > 0 && (
-            <ul className="mt-3 space-y-1 text-sm text-amber-300/90">
+            <ul className="mt-3 space-y-1 text-sm text-warn-soft/90">
               {outcome.warnings.map((w, i) => (
                 <li key={i}>{w}</li>
               ))}
@@ -167,7 +167,7 @@ export function ImportForm() {
 
           {outcome?.status === "preview" && outcome.sample.length > 0 && (
             <>
-              <p className="mt-4 text-xs uppercase tracking-wide text-cream/40">
+              <p className="mt-4 text-xs uppercase tracking-wide text-cream/60">
                 First rows read
               </p>
               <ul className="mt-1 space-y-0.5 text-sm text-cream/60">
@@ -179,7 +179,7 @@ export function ImportForm() {
                 ))}
               </ul>
               {outcome.rows > outcome.sample.length && (
-                <p className="mt-1 text-xs text-cream/40">
+                <p className="mt-1 text-xs text-cream/60">
                   …and {outcome.rows - outcome.sample.length} more rows.
                 </p>
               )}
@@ -187,7 +187,7 @@ export function ImportForm() {
           )}
 
           {outcome?.status === "done" && outcome.imageFailures.length > 0 && (
-            <div className="mt-3 text-sm text-amber-300/90">
+            <div className="mt-3 text-sm text-warn-soft/90">
               <p>Stock was imported, but some photos could not be fetched:</p>
               <ul className="mt-1 space-y-0.5">
                 {outcome.imageFailures.map((f, i) => (
