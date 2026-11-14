@@ -55,12 +55,39 @@ export default async function ScheduledPage() {
             {products.map((product) => (
               <Card key={product.id}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-semibold text-cream">{product.name}</h2>
-                    <p className="mt-1 text-xs text-cream/65">
-                      {product.category.name} · {product.variants.length}{" "}
-                      {product.variants.length === 1 ? "size" : "sizes"}
-                    </p>
+                  <div className="flex min-w-0 items-start gap-3">
+                    {/*
+                      Scheduled items often arrive from a supplier sheet with a
+                      photo and a placeholder name, so the picture is how the
+                      owner recognises them: it leads, and it is bigger than the
+                      stock grid's thumbnail. Same plain <img> as the grid: the
+                      URL is an R2 public address, not something next/image
+                      needs to optimise.
+                    */}
+                    {product.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-24 w-24 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div
+                        aria-hidden
+                        className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-raised text-xs text-cream/55"
+                      >
+                        No photo
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold text-cream">{product.name}</h2>
+                      <p className="mt-1 text-xs text-cream/65">
+                        {product.category.name} · {product.variants.length}{" "}
+                        {product.variants.length === 1 ? "size" : "sizes"}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <ReceiveProductButton id={product.id} name={product.name} />
